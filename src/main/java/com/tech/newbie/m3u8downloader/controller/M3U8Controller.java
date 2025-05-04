@@ -102,9 +102,9 @@ public class M3U8Controller {
                 Files.write(outputFile.toPath(), response.body());
 
                 // set progression bar
-                int currentIndex = i +1;
+                int currentIndex = i + 1;
                 double progress = (double) currentIndex / size;
-                javafx.application.Platform.runLater(()-> progressBar.setProgress(progress));
+                javafx.application.Platform.runLater(() -> progressBar.setProgress(progress));
 
             } catch (Exception e) {
                 System.out.println("下載失敗: " + url);
@@ -125,19 +125,23 @@ public class M3U8Controller {
     }
 
     private void measureExecutionTime(Runnable task) {
-        long start = System.currentTimeMillis();
-        task.run();
-        long end = System.currentTimeMillis();
+        Thread bgThread = new Thread(() -> {
+            long start = System.currentTimeMillis();
+            task.run();
+            long end = System.currentTimeMillis();
 
-        long duration = end - start;
-        long minutes = duration / (1000 * 60);
-        long seconds = (duration / 1000) % 60;
-        long milliseconds = duration % 1000;
-        javafx.application.Platform.runLater(() ->
-                timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds)));
-        javafx.application.Platform.runLater(() ->
-                text.setText("Completed!"));
-        System.out.printf("time consumed: [%d]", duration);
+            long duration = end - start;
+            long minutes = duration / (1000 * 60);
+            long seconds = (duration / 1000) % 60;
+            long milliseconds = duration % 1000;
+            javafx.application.Platform.runLater(() ->
+                    timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds)));
+            javafx.application.Platform.runLater(() ->
+                    text.setText("Completed!"));
+            System.out.printf("time consumed: [%d]", duration);}
+        );
+        bgThread.start();
+
     }
 
 
