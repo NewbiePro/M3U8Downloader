@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.stream.IntStream;
@@ -44,7 +45,7 @@ public class M3U8Controller {
 
     private static final String M3U8_HEADER = "#EXTM3U";
     private static final String TS_FORMAT = "%s_%d.ts";
-    private static final String DOWNLOAD_FORMAT = "Downloading......%d/%d\n";
+    private static final String DOWNLOAD_FORMAT = "Thread:%s Downloading......%d/%d\n";
     private static String pathField;
 
 
@@ -111,26 +112,33 @@ public class M3U8Controller {
     // 10min: original downloader
     // 6min: single thread on downloading all ts files
     private void parallelDownloadTsFiles(List<String> tsUrls, String outputDir, String fileName) {
-        // 創建一個固定大小為10的線程池
-        System.out.println("線程數量: "+ Runtime.getRuntime().availableProcessors());
+        // 創建一個固定的線程池
+        ExecutorService executorService = Executors.newFixedThreadPool(2);
         List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
-                .mapToObj(index -> CompletableFuture.runAsync(() -> {
-                    String tsUrl = tsUrls.get(index);
-                    try {
-                        downloadTsFile(tsUrl, outputDir, fileName, index, tsUrls.size());
-                    } catch (Exception e) {
-                        throw new CompletionException(e);
-                    }
-                })).toList();
+                .mapToObj(
+                        index -> CompletableFuture.runAsync(
+                                () -> {
+                                    String tsUrl = tsUrls.get(index);
+                                    try {
+                                        downloadTsFile(tsUrl, outputDir, fileName, index, tsUrls.size());
+                                    } catch (Exception e) {
+                                        throw new CompletionException(e);
+                                    }
+                                }, executorService))
+                .toList();
         //等待所有任務完成
         CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
-        allDone.join(); // 阻塞直到所有任務都完成
+        // 阻塞直到所有任務都完成
+        allDone.join();
+
+        //關閉線程池
+        executorService.shutdown();
     }
 
     private void downloadTsFile(String tsUrl, String outputDir, String fileName, int index, int size) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newBuilder().build();
-        System.out.printf(DOWNLOAD_FORMAT, index, size);
-        File outputFile = new File(pathField, String.format(TS_FORMAT, fileName, index));
+        System.out.printf(DOWNLOAD_FORMAT, Thread.currentThread().getName(), index , size);
+        File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
                 .build();
@@ -142,8 +150,11 @@ public class M3U8Controller {
         double progress = (double) index / size;
         javafx.application.Platform.runLater(() -> progressBar.setProgress(progress));
     }
-
-
+//    //更新進度條
+//    private void updateProgress(List<CompletableFuture<Void>> futures, int totalTasks){
+//        long completedCount = futures.stream().filter(CompletableFuture::isDone).count();
+//        double progress = ()
+//    }
     private void mergeTsToMp4(String baseFilePath, String baseFileName, int totalFiles) throws IOException {
         System.out.println("Start merging");
         // create FileList.txt that includes all ts files
