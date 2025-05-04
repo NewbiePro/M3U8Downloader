@@ -23,13 +23,13 @@ public class M3U8Controller {
     @FXML
     public Label timeLabel;
     @FXML
-    public TextField pathField;
-    @FXML
     public TextField fileNameField;
 
     private static final String M3U8_HEADER = "#EXTM3U";
-
     private static final String TS_FORMAT = "%s_%d.ts";
+    private static String pathField;
+
+    @FXML
     public void onSelectPathClick(ActionEvent actionEvent) {
 
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -37,8 +37,9 @@ public class M3U8Controller {
         Stage stage = (Stage) inputArea.getScene().getWindow();
         File selectedDir = directoryChooser.showDialog(stage);
 
-        if(selectedDir != null){
-            pathField.setText(selectedDir.getAbsolutePath());
+        if (selectedDir != null) {
+            pathField = selectedDir.getAbsolutePath();
+            System.out.println("Path is: " + pathField);
         } else {
             Alert alert = new Alert(Alert.AlertType.INFORMATION, "not chosen any directory", ButtonType.OK);
             alert.showAndWait();
@@ -47,7 +48,7 @@ public class M3U8Controller {
     }
 
     @FXML
-    public void onDownloadButtonClick(ActionEvent actionEvent)  {
+    public void onDownloadButtonClick(ActionEvent actionEvent) {
         String m3u8Url = inputArea.getText();
 
         measureExecutionTime(new Thread(() -> {
@@ -62,9 +63,6 @@ public class M3U8Controller {
                         //過濾出.ts
                         var tsUrls = parseM3U8Content(response.body());
 
-                        System.out.println("列表");
-                        tsUrls.forEach(System.out::println);
-
                         javafx.application.Platform.runLater(
                                 () -> text.setText("清單中共有 " + tsUrls.size() + " 個ts檔"));
 
@@ -72,7 +70,7 @@ public class M3U8Controller {
                     } catch (Exception e) {
                         e.printStackTrace();
                         javafx.application.Platform.runLater(
-                                () -> text.setText("error, please check......"));
+                                () -> text.setText("Error, please check......"));
                     }
 
 
@@ -84,12 +82,12 @@ public class M3U8Controller {
 
     private void downloadTsFiles(List<String> tsUrls) {
         HttpClient client = HttpClient.newHttpClient();
-        String baseFilePath = pathField.getText();
+        String baseFilePath = pathField;
         String baseFileName = fileNameField.getText();
 
         for (int i = 0; i < tsUrls.size(); i++) {
             String url = tsUrls.get(i);
-            try{
+            try {
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
                         .build();
@@ -98,15 +96,15 @@ public class M3U8Controller {
                 File outputFile = new File(baseFilePath, String.format(TS_FORMAT, baseFileName, i));
                 Files.write(outputFile.toPath(), response.body());
 
-            } catch (Exception e){
-                System.out.println("下載失敗: "+url);
+            } catch (Exception e) {
+                System.out.println("下載失敗: " + url);
             }
         }
 
     }
 
-    private List<String> parseM3U8Content (String content){
-        if(!content.contains(M3U8_HEADER)) {
+    private List<String> parseM3U8Content(String content) {
+        if (!content.contains(M3U8_HEADER)) {
             javafx.application.Platform.runLater(() ->
                     text.setText("invalid m3u8 url"));
             return Collections.emptyList();
@@ -116,12 +114,16 @@ public class M3U8Controller {
                 .toList();
     }
 
-    private void measureExecutionTime(Runnable task){
+    private void measureExecutionTime(Runnable task) {
         long start = System.currentTimeMillis();
         task.run();
         long end = System.currentTimeMillis();
         javafx.application.Platform.runLater(() ->
                 timeLabel.setText(String.format("下載耗時: [%s]ms", end - start)));
+        javafx.application.Platform.runLater(() ->
+                text.setText("Completed!")
+
+        );
     }
 
 

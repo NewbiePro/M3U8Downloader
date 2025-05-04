@@ -9,6 +9,7 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.text.Text?>
+<?import javafx.scene.control.ProgressBar?>
 <VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.tech.newbie.m3u8downloader.controller.M3U8Controller">
     <padding>
@@ -21,21 +22,20 @@
     <!-- URL Input Section -->
     <VBox spacing="10" alignment="CENTER">
         <TextArea fx:id="inputArea" promptText="Enter URL" prefRowCount="4" prefWidth="600" wrapText="true"/>
-
     </VBox>
+    <TextField fx:id="fileNameField" promptText="File Name" maxWidth="600"/>
 
-
-    <TextField fx:id="fileNameField" promptText="File Name" maxWidth="200"/>
-    <!-- Path Selection Section -->
-    <HBox spacing="10" alignment="CENTER">
-        <TextField fx:id="pathField" promptText="Download Path" maxWidth="300"/>
-        <Button text="Select DownLoad Path" onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
-    </HBox>
     <!-- Time Display Section -->
     <VBox spacing="10" alignment="CENTER">
         <Label fx:id="timeLabel" text="Time Consumed" style="-fx-font-size: 14px;"/>
     </VBox>
 
-    <!-- Download Button-->
-    <Button text="Download" onAction="#onDownloadButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+    <!-- Progress Bar for download progess-->
+    <ProgressBar fx:id="progressBar" progress="0.0" prefWidth="600"/>
+    <!-- Button Section-->
+    <HBox>
+        <Button text="Download" onAction="#onDownloadButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+        <TextField fx:id="pathField" promptText="Download Path" maxWidth="300"/>
+        <Button text="Select DownLoad Path" onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+    </HBox>
 </VBox>
