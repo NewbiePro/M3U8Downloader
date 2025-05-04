@@ -3,63 +3,102 @@ package com.tech.newbie.m3u8downloader.controller;
 import com.tech.newbie.m3u8downloader.common.constant.Constant;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextField;
+import javafx.scene.control.*;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.Stage;
 
-import java.io.IOException;
+import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class M3U8Controller {
     @FXML
-    public TextField inputField;
+    public TextArea inputArea;
     @FXML
-    private Label welcomeText;
-
+    public Label text;
     @FXML
     public Label timeLabel;
+    @FXML
+    public TextField pathField;
 
+
+    public void onSelectPathClick(ActionEvent actionEvent) {
+
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+
+        Stage stage = (Stage) inputArea.getScene().getWindow();
+        File selectedDir = directoryChooser.showDialog(stage);
+
+        if(selectedDir != null){
+            pathField.setText(selectedDir.getAbsolutePath());
+        } else {
+            Alert alert = new Alert(Alert.AlertType.INFORMATION, "not chosen any directory", ButtonType.OK);
+            alert.showAndWait();
+        }
+
+    }
 
     @FXML
-    public void onEnterButtonClick(ActionEvent actionEvent)  {
-        String m3u8Url = inputField.getText();
+    public void onDownloadButtonClick(ActionEvent actionEvent)  {
+        String m3u8Url = inputArea.getText();
 
         measureExecutionTime(new Thread(() -> {
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(m3u8Url))
-                    .build();
+                    try {
+                        HttpClient client = HttpClient.newHttpClient();
+                        HttpRequest request = HttpRequest.newBuilder()
+                                .uri(URI.create(m3u8Url))
+                                .build();
 
-            HttpResponse<String> response;
-            try {
-                response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            } catch (IOException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
+                        HttpResponse<String> response;
+                        response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                        //過濾出.ts
+                        var tsUrls = parseM3U8Content(response.body());
 
-            //過濾出.ts
-            var tsUrls =  parseM3U8Content(response.body());
+                        System.out.println("列表");
+                        tsUrls.forEach(System.out::println);
 
-            System.out.println("列表");
-            tsUrls.forEach(System.out::println);
+                        javafx.application.Platform.runLater(
+                                () -> text.setText("清單中共有 " + tsUrls.size() + " 個ts檔"));
 
-            javafx.application.Platform.runLater(
-                    () -> welcomeText.setText("清單中共有 "+ tsUrls.size()+" 個ts檔"));
-        })
+                        downloadTsFiles(tsUrls);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        javafx.application.Platform.runLater(
+                                () -> text.setText("error, please check......"));
+                    }
+
+
+                })
         );
 
+
+    }
+
+    private void downloadTsFiles(List<String> tsUrls) {
+        HttpClient client = HttpClient.newHttpClient();
+        for (int i = 0; i < tsUrls.size(); i++) {
+            String url = tsUrls.get(i);
+            try{
+                HttpRequest request = HttpRequest.newBuilder()
+                        .uri(URI.create(url))
+                        .build();
+
+                HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            } catch (Exception e){
+                System.out.println("下載失敗: "+url);
+            }
+        }
 
     }
 
     private List<String> parseM3U8Content (String content){
         if(!content.contains(Constant.M3U8_HEADER)) {
             javafx.application.Platform.runLater(() ->
-                    welcomeText.setText("invalid m3u8 url"));
+                    text.setText("invalid m3u8 url"));
             return Collections.emptyList();
         }
         return content.lines()
@@ -72,6 +111,8 @@ public class M3U8Controller {
         task.run();
         long end = System.currentTimeMillis();
         javafx.application.Platform.runLater(() ->
-                timeLabel.setText(String.format("下載耗時: [%s] %n", end - start)));
+                timeLabel.setText(String.format("下載耗時: [%s]ms", end - start)));
     }
+
+
 }

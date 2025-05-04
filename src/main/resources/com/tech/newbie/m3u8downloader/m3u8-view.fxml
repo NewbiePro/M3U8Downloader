@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.tech.newbie.m3u8downloader.controller.M3U8Controller">
+    <padding>
+        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
+    </padding>
+
+    <!-- Main Title -->
+    <Label fx:id="text" text="M3U8 Downloader" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+
+    <!-- Path Selection Section -->
+    <HBox spacing="10" alignment="CENTER">
+        <TextField fx:id="pathField" promptText="Download Path" maxWidth="300"/>
+        <Button text="Select DownLoad Path" onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+    </HBox>
+
+    <!-- URL Input Section -->
+    <VBox spacing="10" alignment="CENTER">
+        <TextArea fx:id="inputArea" promptText="Enter URL" prefRowCount="2" wrapText="true" maxWidth="400"/>
+        <Button text="Download" onAction="#onDownloadButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+    </VBox>
+
+    <!-- Time Display Section -->
+    <VBox spacing="10" alignment="CENTER">
+        <Label fx:id="timeLabel" text="Time Consumed" style="-fx-font-size: 14px;"/>
+    </VBox>
+</VBox>
