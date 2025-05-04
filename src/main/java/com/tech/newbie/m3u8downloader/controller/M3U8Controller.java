@@ -145,7 +145,7 @@ public class M3U8Controller {
 
 
     private void mergeTsToMp4(String baseFilePath, String baseFileName, int totalFiles) throws IOException {
-
+        System.out.println("Start merging");
         // create FileList.txt that includes all ts files
         StringBuilder fileListContent = new StringBuilder();
         for (int i = 0; i < totalFiles; i++) {
