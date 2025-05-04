@@ -1,13 +1,21 @@
 package com.tech.newbie.m3u8downloader.controller;
 
-import javafx.application.Platform;
+
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -15,16 +23,17 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.IntStream;
 
 public class M3U8Controller {
     @FXML
     public TextArea inputArea;
     @FXML
-    public Label text;
+    public Label statusText;
     @FXML
     public Label timeLabel;
     @FXML
@@ -61,7 +70,8 @@ public class M3U8Controller {
     public void onDownloadButtonClick(ActionEvent actionEvent) {
         String m3u8Url = inputArea.getText();
 
-        measureExecutionTime(new Thread(() -> {
+        measureExecutionTime(
+                new Thread(() -> {
                     try {
                         HttpClient client = HttpClient.newHttpClient();
                         HttpRequest request = HttpRequest.newBuilder()
@@ -69,18 +79,18 @@ public class M3U8Controller {
                                 .build();
 
                         HttpResponse<String> response;
+                        // 1- fetch m3u8 文件
                         response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                        //過濾出.ts
+                        // 2- get all ts urls
                         var tsUrls = parseM3U8Content(response.body());
-
-                        javafx.application.Platform.runLater(
-                                () -> text.setText("清單中共有 " + tsUrls.size() + " 個ts檔"));
-
-                        parallelDownloadTsFiles(tsUrls);
+                        displayStatus("清單中共有 " + tsUrls.size() + " 個ts檔");
+                        // 3- download all ts files
+                        parallelDownloadTsFiles(tsUrls, pathField, fileNameField.getText());
+                        // 4- merge all ts files
+                        mergeTsToMp4(pathField, fileNameField.getText(), tsUrls.size());
                     } catch (Exception e) {
                         e.printStackTrace();
-                        javafx.application.Platform.runLater(
-                                () -> text.setText("Error, please check......"));
+                        displayStatus("Error, please check......");
                     }
 
 
@@ -90,8 +100,7 @@ public class M3U8Controller {
 
     private List<String> parseM3U8Content(String content) {
         if (!content.contains(M3U8_HEADER)) {
-            javafx.application.Platform.runLater(() ->
-                    text.setText("invalid m3u8 url"));
+            displayStatus("invalid m3u8 url");
             return Collections.emptyList();
         }
         return content.lines()
@@ -101,67 +110,37 @@ public class M3U8Controller {
 
     // 10min: original downloader
     // 6min: single thread on downloading all ts files
-    private void downloadTsFiles(List<String> tsUrls) {
-        HttpClient client = HttpClient.newHttpClient();
-        String baseFilePath = pathField;
-        String baseFileName = fileNameField.getText();
-        int size = tsUrls.size();
-        for (int i = 0; i < size; i++) {
-            System.out.printf(DOWNLOAD_FORMAT, i, size);
-            String url = tsUrls.get(i);
-            try {
-                HttpRequest request = HttpRequest.newBuilder()
-                        .uri(URI.create(url))
-                        .build();
-
-                HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                File outputFile = new File(baseFilePath, String.format(TS_FORMAT, baseFileName, i));
-                Files.write(outputFile.toPath(), response.body());
-
-                // set progression bar
-                int currentIndex = i + 1;
-                double progress = (double) currentIndex / size;
-                javafx.application.Platform.runLater(() -> progressBar.setProgress(progress));
-
-            } catch (Exception e) {
-                System.out.println("下載失敗: " + url);
-            }
-        }
+    private void parallelDownloadTsFiles(List<String> tsUrls, String outputDir, String fileName) {
+        List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
+                .mapToObj(index -> CompletableFuture.runAsync(() -> {
+                    String tsUrl = tsUrls.get(index);
+                    try {
+                        downloadTsFile(tsUrl, outputDir, fileName, index, tsUrls.size());
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                })).toList();
+        //等待所有任務完成
+        CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        allDone.join(); // 阻塞直到所有任務都完成
     }
 
-    private void parallelDownloadTsFiles(List<String> tsUrls) {
-        HttpClient client = HttpClient.newHttpClient();
-        String baseFilePath = pathField;
-        String baseFileName = fileNameField.getText();
-        int size = tsUrls.size();
+    private void downloadTsFile(String tsUrl, String outputDir, String fileName, int index, int size) throws IOException, InterruptedException {
+        HttpClient client = HttpClient.newBuilder().build();
+        System.out.printf(DOWNLOAD_FORMAT, index, size);
+        File outputFile = new File(pathField, String.format(TS_FORMAT, fileName, index));
+        HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(tsUrl))
+                .build();
 
-        ExecutorService executor = Executors.newFixedThreadPool(5);
-        AtomicInteger counter = new AtomicInteger(0);
-
-        for (int i = 0; i < size; i++) {
-            final int index = i;
-            executor.submit(() -> {
-                String url = tsUrls.get(index);
-                try {
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(url))
-                            .build();
-                    HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
-
-                    File outputFile = new File(baseFilePath, String.format(TS_FORMAT, baseFileName, index));
-                    Files.write(outputFile.toPath(), response.body());
-                    mergeTsToMp4(baseFilePath, baseFileName, size);
-                } catch (Exception e) {
-                    System.out.println("下載失敗: " + url);
-                } finally {
-                    int currentIndex = counter.incrementAndGet();
-                    double progress = (double) currentIndex / size;
-                    Platform.runLater(() -> progressBar.setProgress(progress));
-                }
-            });
-        }
-        executor.shutdown();
+        HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        //寫入文件
+        Files.write(outputFile.toPath(), response.body());
+        //計入進度
+        double progress = (double) index / size;
+        javafx.application.Platform.runLater(() -> progressBar.setProgress(progress));
     }
+
 
     private void mergeTsToMp4(String baseFilePath, String baseFileName, int totalFiles) throws IOException {
 
@@ -225,10 +204,14 @@ public class M3U8Controller {
 
         javafx.application.Platform.runLater(() ->
                 timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds)));
-        javafx.application.Platform.runLater(() ->
-                text.setText("Completed! "));
+        displayStatus("Completed!");
         System.out.printf("time consumed: [%d]", duration);
     }
 
+    private void displayStatus(String message) {
+        javafx.application.Platform.runLater(()->statusText.setText(message));
+    }
 }
+
+
 
