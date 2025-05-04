@@ -44,7 +44,7 @@ public class M3U8Controller {
 
     private static final String M3U8_HEADER = "#EXTM3U";
     private static final String TS_FORMAT = "%s_%d.ts";
-    private static final String DOWNLOAD_FORMAT = "Downloading......%d/%d";
+    private static final String DOWNLOAD_FORMAT = "Downloading......%d/%d\n";
     private static String pathField;
 
 
@@ -204,12 +204,21 @@ public class M3U8Controller {
 
         javafx.application.Platform.runLater(() ->
                 timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds)));
-        displayStatus("Completed!");
+        // 彈窗顯示已完成的消息
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle("Download Completed");
+        alert.setHeaderText("Download And Merged Finished");
+        alert.setContentText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds));
+        // 最後記錄下ms的紀錄
         System.out.printf("time consumed: [%d]", duration);
     }
 
     private void displayStatus(String message) {
         javafx.application.Platform.runLater(()->statusText.setText(message));
+    }
+
+    private void alertInfo(String message){
+
     }
 }
 
