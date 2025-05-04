@@ -89,7 +89,7 @@ public class M3U8Controller {
 
 
     }
-    // 1004
+    // 10min: original downloader
     // 6min: single thread on downloading all ts files
 //    private void downloadTsFiles(List<String> tsUrls) {
 //        HttpClient client = HttpClient.newHttpClient();
