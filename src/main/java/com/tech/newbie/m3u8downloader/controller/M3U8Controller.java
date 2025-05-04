@@ -111,6 +111,8 @@ public class M3U8Controller {
     // 10min: original downloader
     // 6min: single thread on downloading all ts files
     private void parallelDownloadTsFiles(List<String> tsUrls, String outputDir, String fileName) {
+        // 創建一個固定大小為10的線程池
+        System.out.println("線程數量: "+ Runtime.getRuntime().availableProcessors());
         List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
                 .mapToObj(index -> CompletableFuture.runAsync(() -> {
                     String tsUrl = tsUrls.get(index);
@@ -217,9 +219,7 @@ public class M3U8Controller {
         javafx.application.Platform.runLater(()->statusText.setText(message));
     }
 
-    private void alertInfo(String message){
 
-    }
 }
 
 
