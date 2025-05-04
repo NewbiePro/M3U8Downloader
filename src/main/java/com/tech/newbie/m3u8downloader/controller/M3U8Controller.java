@@ -1,6 +1,5 @@
 package com.tech.newbie.m3u8downloader.controller;
 
-import com.tech.newbie.m3u8downloader.common.constant.Constant;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
@@ -12,6 +11,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,8 +24,12 @@ public class M3U8Controller {
     public Label timeLabel;
     @FXML
     public TextField pathField;
+    @FXML
+    public TextField fileNameField;
 
+    private static final String M3U8_HEADER = "#EXTM3U";
 
+    private static final String TS_FORMAT = "%s_%d.ts";
     public void onSelectPathClick(ActionEvent actionEvent) {
 
         DirectoryChooser directoryChooser = new DirectoryChooser();
@@ -80,6 +84,9 @@ public class M3U8Controller {
 
     private void downloadTsFiles(List<String> tsUrls) {
         HttpClient client = HttpClient.newHttpClient();
+        String baseFilePath = pathField.getText();
+        String baseFileName = fileNameField.getText();
+
         for (int i = 0; i < tsUrls.size(); i++) {
             String url = tsUrls.get(i);
             try{
@@ -88,6 +95,9 @@ public class M3U8Controller {
                         .build();
 
                 HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                File outputFile = new File(baseFilePath, String.format(TS_FORMAT, baseFileName, i));
+                Files.write(outputFile.toPath(), response.body());
+
             } catch (Exception e){
                 System.out.println("下載失敗: "+url);
             }
@@ -96,7 +106,7 @@ public class M3U8Controller {
     }
 
     private List<String> parseM3U8Content (String content){
-        if(!content.contains(Constant.M3U8_HEADER)) {
+        if(!content.contains(M3U8_HEADER)) {
             javafx.application.Platform.runLater(() ->
                     text.setText("invalid m3u8 url"));
             return Collections.emptyList();
