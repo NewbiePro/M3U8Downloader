@@ -35,7 +35,6 @@
     <!-- Button Section-->
     <HBox>
         <Button text="Download" onAction="#onDownloadButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
-        <TextField fx:id="pathField" promptText="Download Path" maxWidth="300"/>
         <Button text="Select DownLoad Path" onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
     </HBox>
 </VBox>

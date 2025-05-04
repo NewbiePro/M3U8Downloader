@@ -24,10 +24,14 @@ public class M3U8Controller {
     public Label timeLabel;
     @FXML
     public TextField fileNameField;
+    @FXML
+    public ProgressBar progressBar;
+
 
     private static final String M3U8_HEADER = "#EXTM3U";
     private static final String TS_FORMAT = "%s_%d.ts";
     private static String pathField;
+
 
     @FXML
     public void onSelectPathClick(ActionEvent actionEvent) {
@@ -84,8 +88,9 @@ public class M3U8Controller {
         HttpClient client = HttpClient.newHttpClient();
         String baseFilePath = pathField;
         String baseFileName = fileNameField.getText();
-
-        for (int i = 0; i < tsUrls.size(); i++) {
+        int size = tsUrls.size();
+        for (int i = 0; i < size; i++) {
+            System.out.println("Downloading......" + i);
             String url = tsUrls.get(i);
             try {
                 HttpRequest request = HttpRequest.newBuilder()
@@ -95,6 +100,11 @@ public class M3U8Controller {
                 HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
                 File outputFile = new File(baseFilePath, String.format(TS_FORMAT, baseFileName, i));
                 Files.write(outputFile.toPath(), response.body());
+
+                // set progression bar
+                int currentIndex = i +1;
+                double progress = (double) currentIndex / size;
+                javafx.application.Platform.runLater(()-> progressBar.setProgress(progress));
 
             } catch (Exception e) {
                 System.out.println("下載失敗: " + url);
@@ -118,12 +128,16 @@ public class M3U8Controller {
         long start = System.currentTimeMillis();
         task.run();
         long end = System.currentTimeMillis();
-        javafx.application.Platform.runLater(() ->
-                timeLabel.setText(String.format("下載耗時: [%s]ms", end - start)));
-        javafx.application.Platform.runLater(() ->
-                text.setText("Completed!")
 
-        );
+        long duration = end - start;
+        long minutes = duration / (1000 * 60);
+        long seconds = (duration / 1000) % 60;
+        long milliseconds = duration % 1000;
+        javafx.application.Platform.runLater(() ->
+                timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds)));
+        javafx.application.Platform.runLater(() ->
+                text.setText("Completed!"));
+        System.out.printf("time consumed: [%d]", duration);
     }
 
 
