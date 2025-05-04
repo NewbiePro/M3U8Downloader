@@ -211,6 +211,7 @@ public class M3U8Controller {
         long start = System.currentTimeMillis();
         Future<?> future = Executors.newSingleThreadExecutor().submit(task);
         try {
+            // 一直阻塞直到任務完成
             future.get();
         } catch (Exception e) {
             e.printStackTrace();
