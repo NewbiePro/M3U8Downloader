@@ -21,6 +21,9 @@ public class M3U8Controller {
     @FXML
     private Label welcomeText;
 
+    @FXML
+    public Label timeLabel;
+
 
     @FXML
     public void onEnterButtonClick(ActionEvent actionEvent)  {
@@ -68,6 +71,7 @@ public class M3U8Controller {
         long start = System.currentTimeMillis();
         task.run();
         long end = System.currentTimeMillis();
-        System.out.printf("下載耗時: [%s] %n", end - start);
+        javafx.application.Platform.runLater(() ->
+                timeLabel.setText(String.format("下載耗時: [%s] %n", end - start)));
     }
 }

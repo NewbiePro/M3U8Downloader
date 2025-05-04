@@ -17,5 +17,7 @@
     <!-- Adding a TextField (input box) -->
     <TextField fx:id="inputField" promptText="Enter url"/>
 
+    <!-- Add a Label to display download time -->
+    <Label fx:id="timeLabel" text="耗時顯示"/>
     <Button text="Enter" onAction="#onEnterButtonClick"/>
 </VBox>
