@@ -22,7 +22,7 @@ public class MergeService {
         strategy.updateStatus("Start merging.........");
         // create FileList.txt that includes all ts files
         StringBuilder fileListContent = new StringBuilder();
-        for (int i = 1; i < totalFiles; i++) {
+        for (int i = 1; i <= totalFiles; i++) {
             fileListContent.append("file '").append(baseFilePath)
                     .append(File.separator).append(String.format(TS_FORMAT, baseFileName, i))
                     .append(" '\n");
