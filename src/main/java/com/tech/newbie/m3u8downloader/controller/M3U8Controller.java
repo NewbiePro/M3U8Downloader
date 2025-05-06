@@ -27,7 +27,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 public class M3U8Controller {
@@ -47,7 +46,6 @@ public class M3U8Controller {
     private static final String TS_FORMAT = "%s_%d.ts";
     private static final String DOWNLOAD_FORMAT = "Thread:%s Downloading......%d/%d\n";
     private static String pathField;
-    private final AtomicInteger counter = new AtomicInteger(0);
 
 
     @FXML
@@ -101,6 +99,7 @@ public class M3U8Controller {
     }
 
     private List<String> parseM3U8Content(String content) {
+        System.out.println("parsing M3U8");
         if (!content.contains(M3U8_HEADER)) {
             displayStatus("invalid m3u8 url");
             return Collections.emptyList();
@@ -138,7 +137,7 @@ public class M3U8Controller {
 
     private void downloadTsFile(String tsUrl, String outputDir, String fileName, int index, int size) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newBuilder().build();
-        System.out.printf(DOWNLOAD_FORMAT, Thread.currentThread().getName(), index , size);
+        System.out.printf(DOWNLOAD_FORMAT, Thread.currentThread().getName(), index, size);
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
@@ -151,7 +150,8 @@ public class M3U8Controller {
         double progress = (double) index / size;
         javafx.application.Platform.runLater(() -> progressBar.setProgress(progress));
     }
-//    //更新進度條
+
+    //    //更新進度條
 //    private void updateProgress(List<CompletableFuture<Void>> futures, int totalTasks){
 //        long completedCount = futures.stream().filter(CompletableFuture::isDone).count();
 //        double progress = ()
@@ -227,12 +227,11 @@ public class M3U8Controller {
             });
 
 
-
         });
     }
 
     private void displayStatus(String message) {
-        javafx.application.Platform.runLater(()->statusText.setText(message));
+        javafx.application.Platform.runLater(() -> statusText.setText(message));
     }
 
 

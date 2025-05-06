@@ -17,7 +17,7 @@
     </padding>
 
     <!-- Main Title -->
-    <Label fx:id="text" text="M3U8 Downloader" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+    <Label fx:id="statusText" text="M3U8 Downloader" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
 
     <!-- URL Input Section -->
     <VBox spacing="10" alignment="CENTER">
