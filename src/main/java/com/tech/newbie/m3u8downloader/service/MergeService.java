@@ -36,7 +36,7 @@ public class MergeService {
         String command = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s",
                 fileList.getAbsolutePath(),
                 new File(baseFilePath, baseFileName + ".mp4").getAbsolutePath());
-
+        System.out.println("command: "+ command);
         // execute command
         ProcessBuilder pb = new ProcessBuilder(command.split(" "));
         pb.redirectErrorStream(true); // merge stdError & stdOutput
