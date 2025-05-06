@@ -12,6 +12,7 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
 
     @Override
     public void updateStatus(Double progress) {
+        System.out.println("progress bar: " + progress);
         Platform.runLater(()-> progressBar.set(progress));
     }
 }
