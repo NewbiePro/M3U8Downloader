@@ -12,6 +12,7 @@ public class StatusTextUpdateStrategy implements  StatusUpdateStrategy<String>{
 
     @Override
     public void updateStatus(String status) {
+        System.out.println("status: "+ status);
         Platform.runLater(()-> statusText.set(status));
     }
 }
