@@ -14,6 +14,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
@@ -23,7 +24,7 @@ import static com.tech.newbie.m3u8downloader.common.Constant.TS_FORMAT;
 public class DownloadService {
     private final StatusUpdateStrategy<String> statusUpdateStrategy;
     private final StatusUpdateStrategy<Double> progressUpdateStrategy;
-
+    private final AtomicInteger counter = new AtomicInteger(1);
     public DownloadService(StatusUpdateStrategy<String> statusUpdateStrategy, StatusUpdateStrategy<Double> progressUpdateStrategy) {
         this.statusUpdateStrategy = statusUpdateStrategy;
         this.progressUpdateStrategy = progressUpdateStrategy;
@@ -45,7 +46,6 @@ public class DownloadService {
                                                 outputDir,
                                                 fileName,
                                                 index,
-                                                tsUrls.size(),
                                                 progressUpdateStrategy::updateStatus);
                                     } catch (Exception e) {
                                         throw new CompletionException(e);
@@ -61,8 +61,9 @@ public class DownloadService {
         executorService.shutdown();
     }
 
-    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int index, int size, Consumer<Double> progressCallback) throws IOException, InterruptedException {
+    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Consumer<Double> progressCallback) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newBuilder().build();
+        int index = counter.getAndIncrement();
         System.out.printf(DOWNLOAD_FORMAT, Thread.currentThread().getName(), index, size);
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
         HttpRequest request = HttpRequest.newBuilder()
