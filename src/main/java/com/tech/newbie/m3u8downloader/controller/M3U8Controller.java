@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 public class M3U8Controller {
@@ -47,6 +47,7 @@ public class M3U8Controller {
     private static final String TS_FORMAT = "%s_%d.ts";
     private static final String DOWNLOAD_FORMAT = "Thread:%s Downloading......%d/%d\n";
     private static String pathField;
+    private final AtomicInteger counter = new AtomicInteger(0);
 
 
     @FXML
@@ -201,29 +202,30 @@ public class M3U8Controller {
 
     private void measureExecutionTime(Runnable task) {
         long start = System.currentTimeMillis();
-        Future<?> future = Executors.newSingleThreadExecutor().submit(task);
-        try {
-            // 一直阻塞直到任務完成
-            future.get();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        CompletableFuture.runAsync(task).whenComplete((result, throwable) -> {
+            long end = System.currentTimeMillis();
+            long duration = end - start;
+            long minutes = duration / (1000 * 60);
+            long seconds = (duration / 1000) % 60;
+            long milliseconds = duration % 1000;
 
-        long end = System.currentTimeMillis();
-        long duration = end - start;
-        long minutes = duration / (1000 * 60);
-        long seconds = (duration / 1000) % 60;
-        long milliseconds = duration % 1000;
+            javafx.application.Platform.runLater(() -> {
+                timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds));
+                // 彈窗顯示已完成的消息
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Download Completed");
+                alert.setHeaderText("Download And Merged Finished");
+                alert.setContentText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds));
+                alert.showAndWait();
+                // 最後記錄下ms的紀錄
+                System.out.printf("time consumed: [%d]", duration);
+            });
 
-        javafx.application.Platform.runLater(() ->
-                timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds)));
-        // 彈窗顯示已完成的消息
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle("Download Completed");
-        alert.setHeaderText("Download And Merged Finished");
-        alert.setContentText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds));
-        // 最後記錄下ms的紀錄
-        System.out.printf("time consumed: [%d]", duration);
+
+            if (throwable != null) {
+                System.out.println(throwable.getCause());
+            }
+        });
     }
 
     private void displayStatus(String message) {
