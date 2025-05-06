@@ -209,6 +209,11 @@ public class M3U8Controller {
             long seconds = (duration / 1000) % 60;
             long milliseconds = duration % 1000;
 
+            if (throwable != null) {
+                System.out.println(throwable.getCause());
+            }
+
+
             javafx.application.Platform.runLater(() -> {
                 timeLabel.setText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds));
                 // 彈窗顯示已完成的消息
@@ -216,15 +221,13 @@ public class M3U8Controller {
                 alert.setTitle("Download Completed");
                 alert.setHeaderText("Download And Merged Finished");
                 alert.setContentText(String.format("Time Consumed: [%d minutes %d seconds %d ms] ", minutes, seconds, milliseconds));
+                System.out.printf("time consumed: [%d]", duration);
                 alert.showAndWait();
                 // 最後記錄下ms的紀錄
-                System.out.printf("time consumed: [%d]", duration);
             });
 
 
-            if (throwable != null) {
-                System.out.println(throwable.getCause());
-            }
+
         });
     }
 
