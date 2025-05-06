@@ -24,7 +24,7 @@ import static com.tech.newbie.m3u8downloader.common.Constant.TS_FORMAT;
 public class DownloadService {
     private final StatusUpdateStrategy<String> statusUpdateStrategy;
     private final StatusUpdateStrategy<Double> progressUpdateStrategy;
-    private final AtomicInteger counter = new AtomicInteger(1);
+    private AtomicInteger counter;
     public DownloadService(StatusUpdateStrategy<String> statusUpdateStrategy, StatusUpdateStrategy<Double> progressUpdateStrategy) {
         this.statusUpdateStrategy = statusUpdateStrategy;
         this.progressUpdateStrategy = progressUpdateStrategy;
@@ -34,6 +34,7 @@ public class DownloadService {
     // 6min: single thread on downloading all ts files
     public void parallelDownloadTsFiles(List<String> tsUrls, String outputDir, String fileName) {
         statusUpdateStrategy.updateStatus("downloading.........");
+        counter.set(1);
         // 創建一個固定的線程池
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
