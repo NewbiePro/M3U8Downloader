@@ -46,7 +46,7 @@ public class DownloadService {
                                         downloadTsFile(tsUrl,
                                                 outputDir,
                                                 fileName,
-                                                index,
+                                                tsUrls.size(),
                                                 progressUpdateStrategy::updateStatus);
                                     } catch (Exception e) {
                                         throw new CompletionException(e);
