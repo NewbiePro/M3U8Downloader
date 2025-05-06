@@ -30,7 +30,7 @@
         <Label fx:id="timeLabel" text="Time Consumed" style="-fx-font-size: 14px;"/>
     </VBox>
 
-    <!-- Progress Bar for download progess-->
+    <!-- Progress Bar for downloading progress-->
     <ProgressBar fx:id="progressBar" progress="0.0" prefWidth="600"/>
     <!-- Button Section-->
     <HBox>
