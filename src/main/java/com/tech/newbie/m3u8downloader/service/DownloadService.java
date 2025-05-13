@@ -72,18 +72,23 @@ public class DownloadService {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
                 .build();
-        HttpResponse<byte[]> response;
-        // try until succeed
+        HttpResponse<byte[]> response = null;
+        int maxRetries = 10;
+        int attempt = 0;
+        // retries 10 times
         while (true){
             try{
                 response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
                 break;
             } catch (IOException e){
+                attempt++;
                 System.out.println(e.getMessage());
-                Thread.sleep(200);
+                if(attempt >= maxRetries){
+                    throw new RuntimeException(String.format("Attempt %d failed to fetch ts: %s",attempt,tsUrl));
+                }
+                Thread.sleep(200L * attempt);
             }
         }
-
         //寫入文件
         Files.write(outputFile.toPath(), response.body());
         //計入進度
