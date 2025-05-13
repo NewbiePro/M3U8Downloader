@@ -38,7 +38,7 @@ public class DownloadService {
         counter.set(1);
         // 創建一個固定的線程池
         // TODO create a customized threadpool
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+        ExecutorService executorService = Executors.newCachedThreadPool();
         List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
                 .mapToObj(
                         index -> CompletableFuture.runAsync(
