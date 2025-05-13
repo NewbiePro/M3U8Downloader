@@ -37,6 +37,7 @@ public class DownloadService {
         statusUpdateStrategy.updateStatus("downloading.........");
         counter.set(1);
         // 創建一個固定的線程池
+        // TODO create a customized threadpool
         ExecutorService executorService = Executors.newFixedThreadPool(2);
         List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
                 .mapToObj(
