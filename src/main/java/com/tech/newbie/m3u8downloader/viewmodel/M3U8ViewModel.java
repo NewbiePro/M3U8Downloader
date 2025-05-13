@@ -50,6 +50,7 @@ public class M3U8ViewModel {
                 try{
                     String m3u8Url = inputArea.get();
                     HttpClient client = HttpClient.newHttpClient();
+                    // 0- build request
                     HttpRequest request = HttpRequest.newBuilder()
                             .uri(URI.create(m3u8Url))
                             .build();
@@ -67,7 +68,7 @@ public class M3U8ViewModel {
                     mergeService.mergeTsToMp4(path , fileName.get(), tsUrls.size());
                 } catch (Exception e){
                     e.printStackTrace();
-                    statusUpdateStrategy.updateStatus("error please check......");
+                    statusUpdateStrategy.updateStatus("error please check......" +  e.getMessage());
                 }
                 return null;
             }
