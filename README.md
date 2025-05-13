@@ -1,4 +1,5 @@
 # M3U8Downloader
+## Directory Structure
 M3U8Downloader/
 │
 ├── src/
@@ -34,3 +35,6 @@ M3U8Downloader/
 │                           ├── service/               # 服務層測試
 │                           └── viewmodel/             # ViewModel 層測試
 └── pom.xml (或 build.gradle)    # 項目管理文件
+
+## TODO
+1. 進度條反覆橫跳=> 生產消費

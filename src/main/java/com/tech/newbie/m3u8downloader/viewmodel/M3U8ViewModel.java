@@ -44,7 +44,7 @@ public class M3U8ViewModel {
 
 
     public void startDownload(){
-        Task<Void> downloadTask = new Task<Void>() {
+        Task<Void> downloadTask = new Task<>() {
             @Override
             protected Void call(){
                 try{
@@ -55,7 +55,7 @@ public class M3U8ViewModel {
                             .build();
 
                     HttpResponse<String> response;
-                    // 1- fetch m3u8 文件
+                    // 1- fetch m3u8 file
                     response = client.send(request, HttpResponse.BodyHandlers.ofString());
                     // 2- get all ts urls
                     List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body());

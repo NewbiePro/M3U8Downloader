@@ -52,8 +52,10 @@ public class MergeService {
             int exitCode = process.waitFor();
             if (exitCode == 0) {
                 System.out.println("合併完成，生成 " + baseFileName + ".mp4");
+                strategy.updateStatus("合併完成");
             } else {
                 System.out.println("ffmpeg執行失敗，錯誤代碼: " + exitCode);
+                strategy.updateStatus("ffmpeg執行失敗，錯誤代碼: " + exitCode);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
