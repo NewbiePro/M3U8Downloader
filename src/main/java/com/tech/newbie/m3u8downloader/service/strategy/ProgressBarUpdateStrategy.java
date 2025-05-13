@@ -29,7 +29,7 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
                     Platform.runLater(() -> progressBar.set(progress));
                     break;
                 } else {
-                    System.out.println(Thread.currentThread().getName() + "update fails " + current + " " + progress);
+                    throw new RuntimeException("shit");
                 }
             } else {
                 break;
