@@ -13,9 +13,11 @@ import static com.tech.newbie.m3u8downloader.common.Constant.TS_FORMAT;
 public class MergeService {
 
     private final StatusUpdateStrategy<String> strategy;
+    private final StatusUpdateStrategy<String> alert;
 
-    public MergeService(StatusUpdateStrategy<String> strategy) {
+    public MergeService(StatusUpdateStrategy<String> strategy, StatusUpdateStrategy<String> alert) {
         this.strategy = strategy;
+        this.alert = alert;
     }
 
     public void mergeTsToMp4(String baseFilePath, String baseFileName, int totalFiles) throws IOException {
@@ -29,12 +31,12 @@ public class MergeService {
         }
 
         // save fileList.txt
-        File fileList = new File(baseFilePath, "fileList.txt");
-        Files.write(fileList.toPath(), fileListContent.toString().getBytes());
+        File fileListTxt = new File(baseFilePath, "fileList.txt");
+        Files.write(fileListTxt.toPath(), fileListContent.toString().getBytes());
 
         // call ffmpeg
         String command = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s",
-                fileList.getAbsolutePath(),
+                fileListTxt.getAbsolutePath(),
                 new File(baseFilePath, baseFileName + ".mp4").getAbsolutePath());
         System.out.println("command: "+ command);
         // execute command
@@ -48,19 +50,25 @@ public class MergeService {
                 System.out.println(line);
             }
 
-            //等待命令執行完畢
+            //wait for the command to complete
             int exitCode = process.waitFor();
             if (exitCode == 0) {
                 System.out.println("合併完成，生成 " + baseFileName + ".mp4");
                 strategy.updateStatus("合併完成");
             } else {
                 System.out.println("ffmpeg執行失敗，錯誤代碼: " + exitCode);
-                strategy.updateStatus("ffmpeg執行失敗，錯誤代碼: " + exitCode);
+                alert.updateStatus("ffmpeg執行失敗，錯誤代碼: " + exitCode);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
 
+        // rm txt files & .ts files
+        Files.deleteIfExists(fileListTxt.toPath());
+        for (int i = 1; i <= totalFiles ; i++) {
+            File tsFile = new File(baseFilePath, String.format(TS_FORMAT, baseFileName, i));
+            Files.deleteIfExists(tsFile.toPath());
+        }
     }
 
 }

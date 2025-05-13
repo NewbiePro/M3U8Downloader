@@ -4,6 +4,7 @@ import com.tech.newbie.m3u8downloader.common.utils.ExecutionTimeUtil;
 import com.tech.newbie.m3u8downloader.service.DownloadService;
 import com.tech.newbie.m3u8downloader.service.M3U8ParserService;
 import com.tech.newbie.m3u8downloader.service.MergeService;
+import com.tech.newbie.m3u8downloader.service.strategy.AlertUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.ProgressBarUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusTextUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
@@ -36,11 +37,12 @@ public class M3U8ViewModel {
     // strategy
     private final StatusUpdateStrategy<String> statusUpdateStrategy = new StatusTextUpdateStrategy(statusText);
     private final StatusUpdateStrategy<Double> progressBarUpdateStrategy = new ProgressBarUpdateStrategy(progressBar);
+    private final StatusUpdateStrategy<String> alertUpdateStrategy = new AlertUpdateStrategy();
 
     // dependency
     private final M3U8ParserService m3U8ParserService = new M3U8ParserService(statusUpdateStrategy);
     private final DownloadService downloadService = new DownloadService(statusUpdateStrategy, progressBarUpdateStrategy);
-    private final MergeService mergeService = new MergeService(statusUpdateStrategy);
+    private final MergeService mergeService = new MergeService(statusUpdateStrategy, alertUpdateStrategy);
 
 
     public void startDownload(){
@@ -66,6 +68,8 @@ public class M3U8ViewModel {
                             fileName.get());
                     // 4- merge all ts files
                     mergeService.mergeTsToMp4(path , fileName.get(), tsUrls.size());
+                    // 5- update done
+
                 } catch (Exception e){
                     e.printStackTrace();
                     statusUpdateStrategy.updateStatus("error please check......" +  e.getMessage());
