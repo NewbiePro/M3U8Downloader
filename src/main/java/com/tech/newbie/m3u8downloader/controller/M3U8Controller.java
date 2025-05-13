@@ -60,6 +60,7 @@ public class M3U8Controller {
     public void onDownloadButtonClick(ActionEvent actionEvent) {
         String inputUrl = inputArea.getText();
         String path = viewModel.getPath();
+        String file = fileNameField.getText();
 
         if (StringUtils.isBlank(path)){
             alert.updateStatus("Please select a downloading path");
@@ -68,6 +69,11 @@ public class M3U8Controller {
 
         if (!HttpUtil.isValidUrl(inputUrl)){
             alert.updateStatus("Please enter a valid url");
+            return;
+        }
+
+        if(StringUtils.isBlank(file)){
+            alert.updateStatus("Please enter a file name");
             return;
         }
 
