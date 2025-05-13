@@ -1,17 +1,19 @@
 package com.tech.newbie.m3u8downloader.controller;
 
 
+import com.tech.newbie.m3u8downloader.common.utils.HttpUtil;
+import com.tech.newbie.m3u8downloader.service.strategy.AlertUpdateStrategy;
+import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
 import com.tech.newbie.m3u8downloader.viewmodel.M3U8ViewModel;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Alert;
-import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 
@@ -27,7 +29,8 @@ public class M3U8Controller {
     @FXML
     public Label timeLabel;
 
-    private M3U8ViewModel viewModel = new M3U8ViewModel();
+    private final M3U8ViewModel viewModel = new M3U8ViewModel();
+    private final StatusUpdateStrategy<String> alert = new AlertUpdateStrategy();
     @FXML
     public void initialize(){
         // Bind UI components to ViewModel Properties
@@ -48,17 +51,28 @@ public class M3U8Controller {
             viewModel.setPath(path);
             System.out.println("Path is: " + path);
         } else {
-            Alert alert = new Alert(Alert.AlertType.INFORMATION, "not chosen any directory", ButtonType.OK);
-            alert.showAndWait();
+            alert.updateStatus("not chosen any directory, please check");
         }
 
     }
 
     @FXML
     public void onDownloadButtonClick(ActionEvent actionEvent) {
+        String inputUrl = inputArea.getText();
+        String path = viewModel.getPath();
+
+        if (StringUtils.isBlank(path)){
+            alert.updateStatus("Please select a downloading path");
+            return;
+        }
+
+        if (!HttpUtil.isValidUrl(inputUrl)){
+            alert.updateStatus("Please enter a valid url");
+            return;
+        }
+
         viewModel.startDownload();
     }
-
 
 }
 

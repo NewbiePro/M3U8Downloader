@@ -25,6 +25,7 @@ public class DownloadService {
     private final StatusUpdateStrategy<String> statusUpdateStrategy;
     private final StatusUpdateStrategy<Double> progressUpdateStrategy;
     private AtomicInteger counter = new AtomicInteger(1);
+
     public DownloadService(StatusUpdateStrategy<String> statusUpdateStrategy, StatusUpdateStrategy<Double> progressUpdateStrategy) {
         this.statusUpdateStrategy = statusUpdateStrategy;
         this.progressUpdateStrategy = progressUpdateStrategy;

@@ -8,6 +8,7 @@ module com.tech.newbie.m3u8downloader {
     requires org.kordamp.bootstrapfx.core;
     requires java.net.http;
     requires static lombok;
+    requires org.apache.commons.lang3;
 
     opens com.tech.newbie.m3u8downloader to javafx.fxml;
     exports com.tech.newbie.m3u8downloader;
