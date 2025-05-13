@@ -8,6 +8,8 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
     private final DoubleProperty progressBar;
     private final AtomicReference<Double> lastProgress = new AtomicReference<>(0.0);
+    // only if reaches threshold that will update the progress bar
+    private static final double UPDATE_THRESHOLD = 0.05;
 
     public ProgressBarUpdateStrategy(DoubleProperty progressBar) {
         this.progressBar = progressBar;
@@ -21,7 +23,7 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
 
         while (true) {
             double current = lastProgress.get();
-            if (progress > current) {
+            if (progress > current && progress - current >= UPDATE_THRESHOLD) {
                 if (lastProgress.compareAndSet(current, progress)) {
                     System.out.println("progress bar: " + progress);
                     Platform.runLater(() -> progressBar.set(progress));
@@ -32,7 +34,6 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
             } else {
                 break;
             }
-
         }
 
     }
