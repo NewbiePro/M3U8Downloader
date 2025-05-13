@@ -3,11 +3,10 @@ package com.tech.newbie.m3u8downloader.service.strategy;
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 
-import java.util.concurrent.atomic.AtomicReference;
-
 public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
     private final DoubleProperty progressBar;
-    private final AtomicReference<Double> lastProgress = new AtomicReference<>(0.0);
+    //
+    private volatile double lastProgress = 0.0;
     // only if reaches threshold that will update the progress bar
     private static final double UPDATE_THRESHOLD = 0.05;
 
@@ -21,20 +20,19 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
             return;
         }
 
-        while (true) {
-            double current = lastProgress.get();
-            if (progress > current && progress - current >= UPDATE_THRESHOLD) {
-                if (lastProgress.compareAndSet(current, progress)) {
-                    System.out.println("progress bar: " + progress);
-                    Platform.runLater(() -> progressBar.set(progress));
-                    break;
-                } else {
-                    throw new RuntimeException("shit");
-                }
-            } else {
-                break;
-            }
+        double current = lastProgress;
+        if (progress <= current || progress - current < UPDATE_THRESHOLD){
+            return;
         }
 
+        synchronized (this){
+            current = lastProgress;
+            if (progress > current && progress - current >=  UPDATE_THRESHOLD){
+                lastProgress = current;
+                System.out.println("progress bar: " + progress);
+                Platform.runLater(() -> progressBar.set(progress));
+            }
+
+        }
     }
 }
