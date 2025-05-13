@@ -20,13 +20,14 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
         }
 
         while (true) {
-            System.out.println(Thread.currentThread().getName() + "    trying to update.....");
             double current = lastProgress.get();
             if (progress > current) {
                 if (lastProgress.compareAndSet(current, progress)) {
                     System.out.println("progress bar: " + progress);
                     Platform.runLater(() -> progressBar.set(progress));
                     break;
+                } else {
+                    System.out.println(Thread.currentThread().getName() + "update fails " + current + " " + progress);
                 }
             } else {
                 break;
