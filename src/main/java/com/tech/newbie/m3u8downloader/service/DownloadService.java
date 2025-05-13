@@ -62,6 +62,7 @@ public class DownloadService {
 
         //關閉線程池
         executorService.shutdown();
+        statusUpdateStrategy.updateStatus("shutting down thread pool.........");
     }
 
     public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Consumer<Double> progressCallback) throws IOException, InterruptedException {
