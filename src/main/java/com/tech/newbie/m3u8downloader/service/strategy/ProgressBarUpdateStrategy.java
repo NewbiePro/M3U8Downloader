@@ -5,7 +5,6 @@ import javafx.beans.property.DoubleProperty;
 
 public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
     private final DoubleProperty progressBar;
-    //
     private volatile double lastProgress = 0.0;
     // only if reaches threshold that will update the progress bar
     private static final double UPDATE_THRESHOLD = 0.05;
