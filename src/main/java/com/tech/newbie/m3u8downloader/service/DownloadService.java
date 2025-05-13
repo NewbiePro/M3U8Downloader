@@ -72,8 +72,18 @@ public class DownloadService {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
                 .build();
+        HttpResponse<byte[]> response;
+        // try until succeed
+        while (true){
+            try{
+                response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                break;
+            } catch (IOException e){
+                System.out.println(e.getMessage());
+                Thread.sleep(200);
+            }
+        }
 
-        HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
         //寫入文件
         Files.write(outputFile.toPath(), response.body());
         //計入進度
