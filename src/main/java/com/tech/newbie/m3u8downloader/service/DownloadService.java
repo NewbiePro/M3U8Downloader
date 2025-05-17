@@ -1,5 +1,6 @@
 package com.tech.newbie.m3u8downloader.service;
 
+import com.tech.newbie.m3u8downloader.service.strategy.ProgressBarUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
 
 import java.io.File;
@@ -59,6 +60,7 @@ public class DownloadService {
         CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
         // 阻塞直到所有任務都完成
         allDone.join();
+        ((ProgressBarUpdateStrategy) progressUpdateStrategy).forceComplete();
 
         //關閉線程池
         executorService.shutdown();

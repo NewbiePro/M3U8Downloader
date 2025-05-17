@@ -81,7 +81,6 @@ public class M3U8ViewModel {
             downloadService.parallelDownloadTsFiles(tsUrls,
                     path,
                     fileName.get());
-            ((ProgressBarUpdateStrategy) progressBarUpdateStrategy).forceComplete();
             // 4- merge all ts files
             mergeService.mergeTsToMp4(path, fileName.get(), tsUrls.size());
             // 5- update done
