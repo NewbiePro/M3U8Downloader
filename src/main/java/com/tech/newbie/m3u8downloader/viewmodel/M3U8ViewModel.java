@@ -37,7 +37,6 @@ public class M3U8ViewModel {
     private final StringProperty inputArea=  new SimpleStringProperty();
     private final StringProperty fileName= new SimpleStringProperty();
     private String path;
-    private CountDownLatch
     // UI strategy
     private final StatusUpdateStrategy<String> statusUpdateStrategy = new StatusTextUpdateStrategy(statusText);
     private final StatusUpdateStrategy<Double> progressBarUpdateStrategy = new ProgressBarUpdateStrategy(progressBar);
