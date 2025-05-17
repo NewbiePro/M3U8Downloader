@@ -34,7 +34,7 @@
     <ProgressBar fx:id="progressBar" progress="0.0" prefWidth="600"/>
     <!-- Button Section-->
     <HBox>
+        <Button text="Browse..." onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
         <Button text="Download" onAction="#onDownloadButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
-        <Button text="Select DownLoad Path" onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
     </HBox>
 </VBox>
