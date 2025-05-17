@@ -18,14 +18,12 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
         if(progress == null){
             return;
         }
-
-        double current = lastProgress;
-        if (progress <= current || progress - current < UPDATE_THRESHOLD){
+        // will not update progress bar if not reach the threshold
+        if (progress <= lastProgress || progress - lastProgress < UPDATE_THRESHOLD){
             return;
         }
         synchronized (this){
-            current = lastProgress;
-            if ( (progress > current && progress - current >=  UPDATE_THRESHOLD) || progress > 0.95 ){
+            if ( progress > lastProgress && progress - lastProgress >=  UPDATE_THRESHOLD ){
                 lastProgress = progress;
                 System.out.println("progress bar: " + progress);
                 Platform.runLater(() -> progressBar.set(progress));

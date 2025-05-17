@@ -19,13 +19,12 @@ import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 import static com.tech.newbie.m3u8downloader.common.Constant.DOWNLOADED_FORMAT;
-import static com.tech.newbie.m3u8downloader.common.Constant.DOWNLOADING_FORMAT;
 import static com.tech.newbie.m3u8downloader.common.Constant.TS_FORMAT;
 
 public class DownloadService {
     private final StatusUpdateStrategy<String> statusUpdateStrategy;
     private final StatusUpdateStrategy<Double> progressUpdateStrategy;
-    private AtomicInteger counter = new AtomicInteger(1);
+    private final AtomicInteger counter = new AtomicInteger(1);
 
     public DownloadService(StatusUpdateStrategy<String> statusUpdateStrategy, StatusUpdateStrategy<Double> progressUpdateStrategy) {
         this.statusUpdateStrategy = statusUpdateStrategy;
@@ -39,7 +38,7 @@ public class DownloadService {
         counter.set(1);
         // 創建一個固定的線程池
         // TODO create a customized threadpool
-        ExecutorService executorService = Executors.newCachedThreadPool();
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
         List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
                 .mapToObj(
                         index -> CompletableFuture.runAsync(
@@ -70,7 +69,6 @@ public class DownloadService {
     public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Consumer<Double> progressCallback) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newBuilder().build();
         int index = counter.getAndIncrement();
-        System.out.printf(DOWNLOADING_FORMAT, Thread.currentThread().getName(), index, size);
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
@@ -81,7 +79,14 @@ public class DownloadService {
         // retries 10 times
         while (true){
             try{
+                // ts file
                 response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                if (response.statusCode() != 200 || response.body() == null || response.body().length == 0) {
+                    System.out.println("invalid response for ts segment: "+ tsUrl + " [status: "+ response.statusCode() +" ]");
+                    throw new IOException("invalid response");
+                }
+                // ts file output to directory
+                Files.write(outputFile.toPath(), response.body());
                 break;
             } catch (IOException e){
                 attempt++;
@@ -89,14 +94,13 @@ public class DownloadService {
                 if(attempt >= maxRetries){
                     throw new RuntimeException(String.format("Attempt %d failed to fetch ts: %s",attempt,tsUrl));
                 }
+                Files.deleteIfExists(outputFile.toPath());
                 Thread.sleep(200L * attempt);
             }
         }
-        //寫入文件
-        Files.write(outputFile.toPath(), response.body());
-        //計入進度
+
+        //update progress bar
         double progress = (double) index / size;
-        // call back
         progressCallback.accept(progress);
         System.out.printf(DOWNLOADED_FORMAT, Thread.currentThread().getName(), index, size);
     }
