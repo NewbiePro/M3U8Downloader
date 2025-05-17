@@ -33,14 +33,21 @@ public class MergeService {
         // save fileList.txt
         File fileListTxt = new File(baseFilePath, "fileList.txt");
         Files.write(fileListTxt.toPath(), fileListContent.toString().getBytes());
-
-        // call ffmpeg
+        File outputFile = new File(baseFilePath, baseFileName + ".mp4");
+        // log command
         String command = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s",
                 fileListTxt.getAbsolutePath(),
-                new File(baseFilePath, baseFileName + ".mp4").getAbsolutePath());
+                outputFile.getAbsolutePath());
+
         System.out.println("command: "+ command);
         // execute command
-        ProcessBuilder pb = new ProcessBuilder(command.split(" "));
+        ProcessBuilder pb = new ProcessBuilder(
+                "ffmpeg","-f","concat","-safe","0",
+                "-i", fileListTxt.getAbsolutePath(),
+                "-c", "copy",outputFile.getAbsolutePath()
+
+        );
+
         pb.redirectErrorStream(true); // merge stdError & stdOutput
         Process process = pb.start();
 

@@ -51,6 +51,8 @@ public class M3U8ViewModel {
             protected Void call(){
                 try{
                     String m3u8Url = inputArea.get();
+                    // clear previous output
+                    progressBarUpdateStrategy.updateStatus(0.0);
                     HttpClient client = HttpClient.newHttpClient();
                     // 0- build request
                     HttpRequest request = HttpRequest.newBuilder()
