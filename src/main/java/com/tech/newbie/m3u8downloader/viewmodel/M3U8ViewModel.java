@@ -9,6 +9,7 @@ import com.tech.newbie.m3u8downloader.service.strategy.ProgressBarUpdateStrategy
 import com.tech.newbie.m3u8downloader.service.strategy.StatusTextUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.TimeLabelUpdateStrategy;
+import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -23,6 +24,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 @Getter
 @Setter
@@ -35,8 +37,8 @@ public class M3U8ViewModel {
     private final StringProperty inputArea=  new SimpleStringProperty();
     private final StringProperty fileName= new SimpleStringProperty();
     private String path;
-
-    // strategy
+    private CountDownLatch
+    // UI strategy
     private final StatusUpdateStrategy<String> statusUpdateStrategy = new StatusTextUpdateStrategy(statusText);
     private final StatusUpdateStrategy<Double> progressBarUpdateStrategy = new ProgressBarUpdateStrategy(progressBar);
     private final StatusUpdateStrategy<String> alertUpdateStrategy = new AlertUpdateStrategy();
@@ -61,9 +63,9 @@ public class M3U8ViewModel {
     private void performDownload() {
         try {
             String m3u8Url = inputArea.get();
+
             // clear previous output
-            progressBar.set(0.0);
-            timeLabel.set(StringUtils.EMPTY);
+            resetUIState();
 
             HttpClient client = HttpClient.newHttpClient();
             // 0- build request
@@ -89,6 +91,18 @@ public class M3U8ViewModel {
             statusUpdateStrategy.updateStatus("error please check......" + e.getMessage());
         }
 
+    }
+
+    private void resetUIState() throws InterruptedException {
+        CountDownLatch latch = new CountDownLatch(1);
+        Platform.runLater(
+                () -> {
+                    progressBar.set(0.0);
+                    timeLabel.set(StringUtils.EMPTY);
+                    latch.countDown();
+                }
+        );
+        latch.await();
     }
 
     private void measureExecutionTime(Runnable task) throws RuntimeException {
