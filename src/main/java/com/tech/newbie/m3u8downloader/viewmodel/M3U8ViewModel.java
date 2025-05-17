@@ -16,6 +16,7 @@ import javafx.beans.property.StringProperty;
 import javafx.concurrent.Task;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -62,7 +63,7 @@ public class M3U8ViewModel {
             String m3u8Url = inputArea.get();
             // clear previous output
             progressBarUpdateStrategy.updateStatus(0.0);
-            timeLabelUpdateStrategy.updateStatus(0L);
+            timeLabel.set(StringUtils.EMPTY);
 
             HttpClient client = HttpClient.newHttpClient();
             // 0- build request
