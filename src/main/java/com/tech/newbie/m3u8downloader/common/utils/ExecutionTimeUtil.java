@@ -14,6 +14,8 @@ public class ExecutionTimeUtil {
                 onError.accept(t);
             }
         });
+        // Set as a daemon thread to ensure it terminates automatically once the JAVAFX application thread(UI) terminate
+        thread.setDaemon(true);
         thread.start();
     }
 
