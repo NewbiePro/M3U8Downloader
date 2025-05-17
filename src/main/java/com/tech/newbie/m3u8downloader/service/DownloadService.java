@@ -18,7 +18,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
-import static com.tech.newbie.m3u8downloader.common.Constant.DOWNLOAD_FORMAT;
+import static com.tech.newbie.m3u8downloader.common.Constant.DOWNLOADED_FORMAT;
+import static com.tech.newbie.m3u8downloader.common.Constant.DOWNLOADING_FORMAT;
 import static com.tech.newbie.m3u8downloader.common.Constant.TS_FORMAT;
 
 public class DownloadService {
@@ -62,13 +63,14 @@ public class DownloadService {
 
         //關閉線程池
         executorService.shutdown();
-        statusUpdateStrategy.updateStatus("shutting down thread pool.........");
+        System.out.println("shut down thread pool......");
+        statusUpdateStrategy.updateStatus("shut down thread pool.........");
     }
 
     public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Consumer<Double> progressCallback) throws IOException, InterruptedException {
         HttpClient client = HttpClient.newBuilder().build();
         int index = counter.getAndIncrement();
-        System.out.printf(DOWNLOAD_FORMAT, Thread.currentThread().getName(), index, size);
+        System.out.printf(DOWNLOADING_FORMAT, Thread.currentThread().getName(), index, size);
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
@@ -96,6 +98,7 @@ public class DownloadService {
         double progress = (double) index / size;
         // call back
         progressCallback.accept(progress);
+        System.out.printf(DOWNLOADED_FORMAT, Thread.currentThread().getName(), index, size);
     }
 
 }

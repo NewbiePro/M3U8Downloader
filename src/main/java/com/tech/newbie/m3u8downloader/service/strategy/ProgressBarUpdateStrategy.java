@@ -25,7 +25,7 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
         }
         synchronized (this){
             current = lastProgress;
-            if (progress > current && progress - current >=  UPDATE_THRESHOLD){
+            if ( (progress > current && progress - current >=  UPDATE_THRESHOLD) || progress > 0.95 ){
                 lastProgress = progress;
                 System.out.println("progress bar: " + progress);
                 Platform.runLater(() -> progressBar.set(progress));
