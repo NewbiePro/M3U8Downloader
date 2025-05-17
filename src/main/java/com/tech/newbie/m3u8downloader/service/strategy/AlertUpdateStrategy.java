@@ -7,6 +7,7 @@ public class AlertUpdateStrategy implements StatusUpdateStrategy<String> {
     @Override
     public void updateStatus(String message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK);
+        alert.setHeaderText("m3u8 downloader");
         alert.showAndWait();
     }
 }

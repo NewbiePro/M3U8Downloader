@@ -8,6 +8,7 @@ import com.tech.newbie.m3u8downloader.service.strategy.AlertUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.ProgressBarUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusTextUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
+import com.tech.newbie.m3u8downloader.service.strategy.TimeLabelUpdateStrategy;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -38,52 +39,67 @@ public class M3U8ViewModel {
     private final StatusUpdateStrategy<String> statusUpdateStrategy = new StatusTextUpdateStrategy(statusText);
     private final StatusUpdateStrategy<Double> progressBarUpdateStrategy = new ProgressBarUpdateStrategy(progressBar);
     private final StatusUpdateStrategy<String> alertUpdateStrategy = new AlertUpdateStrategy();
-
+    private final StatusUpdateStrategy<Long> timeLabelUpdateStrategy = new TimeLabelUpdateStrategy(timeLabel);
     // dependency
     private final M3U8ParserService m3U8ParserService = new M3U8ParserService(statusUpdateStrategy);
     private final DownloadService downloadService = new DownloadService(statusUpdateStrategy, progressBarUpdateStrategy);
     private final MergeService mergeService = new MergeService(statusUpdateStrategy, alertUpdateStrategy);
 
 
-    public void startDownload(){
+    public void startDownload() {
         Task<Void> downloadTask = new Task<>() {
             @Override
-            protected Void call(){
-                try{
-                    String m3u8Url = inputArea.get();
-                    // clear previous output
-                    progressBarUpdateStrategy.updateStatus(0.0);
-                    HttpClient client = HttpClient.newHttpClient();
-                    // 0- build request
-                    HttpRequest request = HttpRequest.newBuilder()
-                            .uri(URI.create(m3u8Url))
-                            .build();
-
-                    HttpResponse<String> response;
-                    // 1- fetch m3u8 file
-                    response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                    // 2- get all ts urls
-                    List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body());
-                    // 3- download all ts files
-                    downloadService.parallelDownloadTsFiles(tsUrls,
-                            path,
-                            fileName.get());
-                    // 4- merge all ts files
-                    mergeService.mergeTsToMp4(path , fileName.get(), tsUrls.size());
-                    // 5- update done
-
-                } catch (Exception e){
-                    e.printStackTrace();
-                    statusUpdateStrategy.updateStatus("error please check......" +  e.getMessage());
-                }
+            protected Void call() {
+                performDownload();
                 return null;
-            }
+            };
         };
-
-        // Execute the task
-        ExecutionTimeUtil.measureExecutionTime(downloadTask, timeLabel);
+        measureExecutionTime(downloadTask);
     }
 
+    private void performDownload() {
+        try {
+            String m3u8Url = inputArea.get();
+            // clear previous output
+            progressBarUpdateStrategy.updateStatus(0.0);
+            timeLabelUpdateStrategy.updateStatus(0L);
 
+            HttpClient client = HttpClient.newHttpClient();
+            // 0- build request
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(m3u8Url))
+                    .build();
 
+            HttpResponse<String> response;
+            // 1- fetch m3u8 file
+            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            // 2- get all ts urls
+            List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body());
+            // 3- download all ts files
+            downloadService.parallelDownloadTsFiles(tsUrls,
+                    path,
+                    fileName.get());
+            // 4- merge all ts files
+            mergeService.mergeTsToMp4(path, fileName.get(), tsUrls.size());
+            // 5- update done
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            statusUpdateStrategy.updateStatus("error please check......" + e.getMessage());
+        }
+
+    }
+
+    private void measureExecutionTime(Runnable task) throws RuntimeException {
+        ExecutionTimeUtil.measureExecutionTime(task,
+                duration -> {
+                    timeLabelUpdateStrategy.updateStatus(duration);
+                    alertUpdateStrategy.updateStatus("Time Consumed: "+ ExecutionTimeUtil.formatDuration(duration));
+                }, e -> {
+                    alertUpdateStrategy.updateStatus("下載失敗: "+ e.getMessage());
+                    statusUpdateStrategy.updateStatus("錯誤: "+ e.getClass().getSimpleName());
+                }
+        );
+
+    }
 }
