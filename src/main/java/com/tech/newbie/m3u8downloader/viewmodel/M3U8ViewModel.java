@@ -111,8 +111,8 @@ public class M3U8ViewModel {
                     timeLabelUpdateStrategy.updateStatus(duration);
                     alertUpdateStrategy.updateStatus("Time Consumed: "+ ExecutionTimeUtil.formatDuration(duration));
                 }, e -> {
-                    alertUpdateStrategy.updateStatus("下載失敗: "+ e.getMessage());
                     statusUpdateStrategy.updateStatus("錯誤: "+ e.getClass().getSimpleName());
+                    alertUpdateStrategy.updateStatus("下載失敗: "+ e.getMessage());
                 }
         );
     }
