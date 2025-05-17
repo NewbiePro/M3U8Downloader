@@ -9,7 +9,6 @@ public class AlertUpdateStrategy implements StatusUpdateStrategy<String> {
     public void updateStatus(String message) {
         Platform.runLater(()->{
             Alert alert = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK);
-            alert.setHeaderText("m3u8 downloader");
             alert.showAndWait();
         });
     }

@@ -23,6 +23,6 @@ public class ExecutionTimeUtil {
         long minutes = durationMillis / (1000 * 60);
         long seconds = (durationMillis / 1000) % 60;
         long milliseconds = durationMillis % 1000;
-        return String.format("[%d minutes %d seconds %d millis]", minutes, seconds, milliseconds);
+        return String.format("%d MIN %d S %d MS", minutes, seconds, milliseconds);
     }
 }

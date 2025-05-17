@@ -27,7 +27,7 @@
 
     <!-- Time Display Section -->
     <VBox spacing="10" alignment="CENTER">
-        <Label fx:id="timeLabel" text="Time Consumed" style="-fx-font-size: 14px;"/>
+        <Label fx:id="timeLabel" style="-fx-font-size: 14px;"/>
     </VBox>
 
     <!-- Progress Bar for downloading progress-->

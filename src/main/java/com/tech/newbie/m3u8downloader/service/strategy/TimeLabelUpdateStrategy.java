@@ -13,7 +13,7 @@ public class TimeLabelUpdateStrategy implements StatusUpdateStrategy<Long>{
 
     @Override
     public void updateStatus(Long duration) {
-        String formatted = "Time Consumed: " + ExecutionTimeUtil.formatDuration(duration);
+        String formatted = ExecutionTimeUtil.formatDuration(duration);
         System.out.printf(formatted);
         Platform.runLater(()-> timeLabel.set(formatted));
     }

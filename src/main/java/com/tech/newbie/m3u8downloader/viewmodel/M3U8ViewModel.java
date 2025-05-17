@@ -109,7 +109,7 @@ public class M3U8ViewModel {
         ExecutionTimeUtil.measureExecutionTime(task,
                 duration -> {
                     timeLabelUpdateStrategy.updateStatus(duration);
-                    alertUpdateStrategy.updateStatus("Time Consumed: "+ ExecutionTimeUtil.formatDuration(duration));
+                    alertUpdateStrategy.updateStatus(ExecutionTimeUtil.formatDuration(duration));
                 }, e -> {
                     statusUpdateStrategy.updateStatus("錯誤: "+ e.getClass().getSimpleName());
                     alertUpdateStrategy.updateStatus("下載失敗: "+ e.getMessage());

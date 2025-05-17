@@ -37,4 +37,4 @@ M3U8Downloader/
 └── pom.xml (或 build.gradle)    # 項目管理文件
 
 ## TODO
-1. 進度條反覆橫跳=> 生產消費
+[] 文件重複
