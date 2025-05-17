@@ -81,6 +81,7 @@ public class M3U8ViewModel {
             downloadService.parallelDownloadTsFiles(tsUrls,
                     path,
                     fileName.get());
+            ((ProgressBarUpdateStrategy) progressBarUpdateStrategy).forceComplete();
             // 4- merge all ts files
             mergeService.mergeTsToMp4(path, fileName.get(), tsUrls.size());
             // 5- update done
@@ -94,6 +95,7 @@ public class M3U8ViewModel {
 
     private void resetUIState() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
+        ((ProgressBarUpdateStrategy)progressBarUpdateStrategy).setLastProgress(0.0);
         Platform.runLater(
                 () -> {
                     progressBar.set(0.0);
@@ -114,6 +116,5 @@ public class M3U8ViewModel {
                     statusUpdateStrategy.updateStatus("錯誤: "+ e.getClass().getSimpleName());
                 }
         );
-
     }
 }

@@ -1,21 +1,20 @@
 package com.tech.newbie.m3u8downloader.common.utils;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 public class ExecutionTimeUtil {
     public static void measureExecutionTime(Runnable task, Consumer<Long> onFinished, Consumer<Throwable> onError) {
         long start = System.currentTimeMillis();
-        CompletableFuture.runAsync(task).whenComplete((result, throwable) -> {
-            long end = System.currentTimeMillis();
-            long duration = end - start;
-
-            if (throwable != null){
-                onError.accept(throwable);
-            } else {
-                onFinished.accept(duration);
+        Thread thread = new Thread(() -> {
+            try {
+                task.run();
+                long end = System.currentTimeMillis();
+                onFinished.accept(end - start);
+            } catch (Throwable t){
+                onError.accept(t);
             }
         });
+        thread.start();
     }
 
     public static String formatDuration(long durationMillis){
