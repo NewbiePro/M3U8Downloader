@@ -62,7 +62,7 @@ public class M3U8ViewModel {
         try {
             String m3u8Url = inputArea.get();
             // clear previous output
-            progressBarUpdateStrategy.updateStatus(0.0);
+            progressBar.set(0.0);
             timeLabel.set(StringUtils.EMPTY);
 
             HttpClient client = HttpClient.newHttpClient();
