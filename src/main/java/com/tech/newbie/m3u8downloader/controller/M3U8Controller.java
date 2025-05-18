@@ -15,6 +15,7 @@ import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.StringUtils;
 
@@ -87,22 +88,44 @@ public class M3U8Controller {
 
     @FXML
     public void onPlayButtonClick(){
+        Optional<File> fileOpt = m3U8ViewModel.getVideoFile();
+        if (fileOpt.isEmpty()){
+            alert.updateStatus("video not exists, please download first");
+            return;
+        }
+
+        playVideo(fileOpt.get());
+    }
+
+    @FXML
+    public void onChooseVideoClick(ActionEvent actionEvent) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Video File");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Video Files","*.mp4","*.mkv")
+        );
+
+        Stage stage = (Stage) inputArea.getScene().getWindow();
+        File selectedFile = fileChooser.showOpenDialog(stage);
+
+        if (selectedFile != null) {
+            playVideo(selectedFile);
+        } else {
+            alert.updateStatus("未選擇影片");
+        }
+
+    }
+
+    private void playVideo(File videoFile){
         try{
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/tech/newbie/m3u8downloader/PlayerView.fxml"));
             Parent root = loader.load();
 
             PlayerController controller = loader.getController();
 
-            // construct video file
-            Optional<File> videoFileOpt = m3U8ViewModel.getVideoFile();
-
-            if(videoFileOpt.isEmpty()){
-                alert.updateStatus("video not exists, please download first");
-                return;
-            }
 
             // call player
-            controller.initializePlayer(videoFileOpt.get().toURI().toString());
+            controller.initializePlayer(videoFile.toURI().toString());
 
             // build up a new scene to play the video
             Stage stage = new Stage();
@@ -115,9 +138,7 @@ public class M3U8Controller {
             alert.updateStatus("無法啟動播放器: "+ e.getMessage());
             e.printStackTrace();
         }
-
     }
-
 }
 
 

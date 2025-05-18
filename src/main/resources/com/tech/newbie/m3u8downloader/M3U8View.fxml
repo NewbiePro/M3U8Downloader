@@ -36,6 +36,7 @@
     <HBox>
         <Button text="Browse..." onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
         <Button text="Download" onAction="#onDownloadButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
-        <Button text="Play" onAction="#onPlayButtonClick"  style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+        <Button text="Play" onAction="#onPlayButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+        <Button text="Choose Video" onAction="#onChooseVideoClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
     </HBox>
 </VBox>
