@@ -7,19 +7,19 @@ import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
 import com.tech.newbie.m3u8downloader.viewmodel.M3U8ViewModel;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.media.MediaPlayer;
-import javafx.scene.media.MediaView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 
 public class M3U8Controller {
@@ -87,23 +87,35 @@ public class M3U8Controller {
 
     @FXML
     public void onPlayButtonClick(){
-        Optional<MediaPlayer> player = m3U8ViewModel.getMediaPlayer();
+        try{
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/PlayerView.fxml"));
+            Parent root = loader.load();
 
-        if(player.isEmpty()){
-            alert.updateStatus("video not exists, please download first");
-            return;
+            PlayerController controller = loader.getController();
+
+            // construct video file
+            Optional<File> videoFileOpt = m3U8ViewModel.getVideoFile();
+
+            if(videoFileOpt.isEmpty()){
+                alert.updateStatus("video not exists, please download first");
+                return;
+            }
+
+            // call player
+            controller.initializePlayer(videoFileOpt.get().toURI().toString());
+
+            // build up a new scene to play the video
+            Stage stage = new Stage();
+            stage.setScene(new Scene(root, 800, 600));
+            stage.setTitle("Video Player");
+            stage.show();
+
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            alert.updateStatus("無法啟動播放器: "+ e.getMessage());
         }
 
-        MediaView mediaView = new MediaView(player.get());
-
-        BorderPane root = new BorderPane(mediaView);
-        Scene scene = new Scene(root, 800, 600);
-        Stage stage = new Stage();
-        stage.setScene(scene);
-        stage.setTitle("Video Player");
-        stage.show();
-
-        player.get().play();
     }
 
 }

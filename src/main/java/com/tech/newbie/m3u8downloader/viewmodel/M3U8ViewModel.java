@@ -17,11 +17,11 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.concurrent.Task;
-import javafx.scene.media.MediaPlayer;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -122,12 +122,12 @@ public class M3U8ViewModel {
         );
     }
 
-    public Optional<MediaPlayer> getMediaPlayer() {
+    public Optional<File> getVideoFile() {
         Video video = new Video(fileName.get(), path);
         if(!video.exists()){
             return Optional.empty();
         }
 
-        return Optional.of(mediaService.createMediaPlayer(video.getFile()));
+        return Optional.of(video.getFile());
     }
 }

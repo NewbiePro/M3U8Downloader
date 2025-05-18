@@ -13,7 +13,7 @@ public class M3U8Application extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(M3U8Application.class.getResource("m3u8-view.fxml"));
+        FXMLLoader fxmlLoader = new FXMLLoader(M3U8Application.class.getResource("M3U8View.fxml"));
         Scene scene = new Scene(fxmlLoader.load(), WINDOW_WIDTH, WINDOW_HEIGHT);
         stage.setTitle("hello myM3U8!");
         stage.setScene(scene);

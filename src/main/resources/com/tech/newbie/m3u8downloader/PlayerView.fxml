@@ -1,0 +1,29 @@
+
+
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.media.MediaView?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.tech.newbie.m3u8downloader.controller.PlayerController"
+            prefWidth="800" prefHeight="600">
+
+    <center>
+        <MediaView fx:id="mediaView" fitWidth="800" fitHeight="450"/>
+    </center>
+
+    <bottom>
+        <VBox spacing="5" padding="10">
+            <Slider fx:id="progressSlider" min="0" max="100" value="0"/>
+            <HBox spacing="10">
+                <Button fx:id="playPauseButton" text="▶"/>
+                <Label fx:id="timeLabel" text="00:00 / 00:00"/>
+                <Label text="Volume"/>
+                <Slider fx:id="volumeSlider" max="1" value="0.5"/>
+            </HBox>
+        </VBox>
+    </bottom>
+
+</BorderPane>
