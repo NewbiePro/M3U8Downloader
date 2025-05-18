@@ -88,7 +88,7 @@ public class M3U8Controller {
     @FXML
     public void onPlayButtonClick(){
         try{
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/view/PlayerView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("PlayerView.fxml"));
             Parent root = loader.load();
 
             PlayerController controller = loader.getController();
