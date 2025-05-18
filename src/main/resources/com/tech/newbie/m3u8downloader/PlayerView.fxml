@@ -13,7 +13,8 @@
     </center>
 
     <bottom>
-        <VBox spacing="5" padding="10 15 10 15">
+        <VBox spacing="5" padding="10">
+            <Label text="Video Play"/>
             <Slider fx:id="progressSlider" min="0" max="100" value="0"/>
             <HBox spacing="10">
                 <Button fx:id="playPauseButton" text="▶"/>
