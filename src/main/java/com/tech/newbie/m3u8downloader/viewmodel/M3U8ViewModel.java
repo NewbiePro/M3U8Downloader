@@ -123,7 +123,7 @@ public class M3U8ViewModel {
     }
 
     public Optional<MediaPlayer> getMediaPlayer() {
-        Video video = new Video(path, fileName.get());
+        Video video = new Video(fileName.get(), path);
         if(!video.exists()){
             return Optional.empty();
         }
