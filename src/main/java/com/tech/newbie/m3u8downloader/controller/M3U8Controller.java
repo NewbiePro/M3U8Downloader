@@ -20,6 +20,7 @@ import javafx.stage.Stage;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.util.Optional;
 
 public class M3U8Controller {
     @FXML
@@ -33,16 +34,16 @@ public class M3U8Controller {
     @FXML
     public Label timeLabel;
 
-    private final M3U8ViewModel viewModel = new M3U8ViewModel();
+    private final M3U8ViewModel m3U8ViewModel = new M3U8ViewModel();
     private final StatusUpdateStrategy<String> alert = new AlertUpdateStrategy();
     @FXML
     public void initialize(){
         // Bind UI components to ViewModel Properties
-        statusText.textProperty().bindBidirectional(viewModel.getStatusText());
-        progressBar.progressProperty().bindBidirectional(viewModel.getProgressBar());
-        timeLabel.textProperty().bindBidirectional(viewModel.getTimeLabel());
-        inputArea.textProperty().bindBidirectional(viewModel.getInputArea());
-        fileNameField.textProperty().bindBidirectional(viewModel.getFileName());
+        statusText.textProperty().bindBidirectional(m3U8ViewModel.getStatusText());
+        progressBar.progressProperty().bindBidirectional(m3U8ViewModel.getProgressBar());
+        timeLabel.textProperty().bindBidirectional(m3U8ViewModel.getTimeLabel());
+        inputArea.textProperty().bindBidirectional(m3U8ViewModel.getInputArea());
+        fileNameField.textProperty().bindBidirectional(m3U8ViewModel.getFileName());
     }
 
     @FXML
@@ -52,7 +53,7 @@ public class M3U8Controller {
         File selectedDir = directoryChooser.showDialog(stage);
         if (selectedDir != null) {
             String path = selectedDir.getAbsolutePath();
-            viewModel.setPath(path);
+            m3U8ViewModel.setPath(path);
             System.out.println("Path is: " + path);
         } else {
             alert.updateStatus("not chosen any directory, please check");
@@ -63,7 +64,7 @@ public class M3U8Controller {
     @FXML
     public void onDownloadButtonClick(ActionEvent actionEvent) {
         String inputUrl = inputArea.getText();
-        String path = viewModel.getPath();
+        String path = m3U8ViewModel.getPath();
         String file = fileNameField.getText();
 
         if (StringUtils.isBlank(path)){
@@ -81,22 +82,19 @@ public class M3U8Controller {
             return;
         }
 
-        viewModel.startDownload();
+        m3U8ViewModel.startDownload();
     }
 
     @FXML
     public void onPlayButtonClick(){
-        String path = viewModel.getPath();
-        String file = fileNameField.getText();
-        File videoFile = new File(path, file + ".mp4");
+        Optional<MediaPlayer> player = m3U8ViewModel.getMediaPlayer();
 
-        if(!videoFile.exists()){
+        if(player.isEmpty()){
             alert.updateStatus("video not exists, please download first");
             return;
         }
 
-        MediaPlayer player = viewModel.playVideo(videoFile);
-        MediaView mediaView = new MediaView(player);
+        MediaView mediaView = new MediaView(player.get());
 
         BorderPane root = new BorderPane(mediaView);
         Scene scene = new Scene(root, 800, 600);
@@ -105,7 +103,7 @@ public class M3U8Controller {
         stage.setTitle("Video Player");
         stage.show();
 
-        player.play();
+        player.get().play();
     }
 
 }

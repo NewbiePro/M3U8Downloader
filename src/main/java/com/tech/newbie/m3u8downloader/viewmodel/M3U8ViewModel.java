@@ -1,6 +1,7 @@
 package com.tech.newbie.m3u8downloader.viewmodel;
 
 import com.tech.newbie.m3u8downloader.common.utils.ExecutionTimeUtil;
+import com.tech.newbie.m3u8downloader.model.Video;
 import com.tech.newbie.m3u8downloader.service.DownloadService;
 import com.tech.newbie.m3u8downloader.service.M3U8ParserService;
 import com.tech.newbie.m3u8downloader.service.MediaService;
@@ -21,12 +22,12 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
-import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
 @Getter
@@ -121,7 +122,12 @@ public class M3U8ViewModel {
         );
     }
 
-    public MediaPlayer playVideo(File videoFile) {
-        return mediaService.createMediaPlayer(videoFile);
+    public Optional<MediaPlayer> getMediaPlayer() {
+        Video video = new Video(path, fileName.get());
+        if(!video.exists()){
+            return Optional.empty();
+        }
+
+        return Optional.of(mediaService.createMediaPlayer(video.getFile()));
     }
 }
