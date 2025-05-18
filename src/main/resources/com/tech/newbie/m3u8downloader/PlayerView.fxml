@@ -4,6 +4,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.media.MediaView?>
 
+<?import javafx.geometry.Insets?>
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.tech.newbie.m3u8downloader.controller.PlayerController"
             prefWidth="800" prefHeight="600">
@@ -13,7 +14,10 @@
     </center>
 
     <bottom>
-        <VBox spacing="5" padding="10">
+        <VBox spacing="5">
+            <padding>
+                <Insets top="10" right="10" bottom="10" left="10"/>
+            </padding>
             <Label text="Video Play"/>
             <Slider fx:id="progressSlider" min="0" max="100" value="0"/>
             <HBox spacing="10">
