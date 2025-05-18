@@ -7,10 +7,14 @@ import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
 import com.tech.newbie.m3u8downloader.viewmodel.M3U8ViewModel;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.media.MediaPlayer;
+import javafx.scene.media.MediaView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 import org.apache.commons.lang3.StringUtils;
@@ -78,6 +82,30 @@ public class M3U8Controller {
         }
 
         viewModel.startDownload();
+    }
+
+    @FXML
+    public void onPlayButtonClick(){
+        String path = viewModel.getPath();
+        String file = fileNameField.getText();
+        File videoFile = new File(path, file + ".mp4");
+
+        if(!videoFile.exists()){
+            alert.updateStatus("video not exists, please download first");
+            return;
+        }
+
+        MediaPlayer player = viewModel.playVideo(videoFile);
+        MediaView mediaView = new MediaView(player);
+
+        BorderPane root = new BorderPane(mediaView);
+        Scene scene = new Scene(root, 800, 600);
+        Stage stage = new Stage();
+        stage.setScene(scene);
+        stage.setTitle("Video Player");
+        stage.show();
+
+        player.play();
     }
 
 }

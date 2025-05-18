@@ -3,6 +3,7 @@ package com.tech.newbie.m3u8downloader.viewmodel;
 import com.tech.newbie.m3u8downloader.common.utils.ExecutionTimeUtil;
 import com.tech.newbie.m3u8downloader.service.DownloadService;
 import com.tech.newbie.m3u8downloader.service.M3U8ParserService;
+import com.tech.newbie.m3u8downloader.service.MediaService;
 import com.tech.newbie.m3u8downloader.service.MergeService;
 import com.tech.newbie.m3u8downloader.service.strategy.AlertUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.ProgressBarUpdateStrategy;
@@ -15,10 +16,12 @@ import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
 import javafx.concurrent.Task;
+import javafx.scene.media.MediaPlayer;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 
+import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -46,6 +49,7 @@ public class M3U8ViewModel {
     private final M3U8ParserService m3U8ParserService = new M3U8ParserService(statusUpdateStrategy);
     private final DownloadService downloadService = new DownloadService(statusUpdateStrategy, progressBarUpdateStrategy);
     private final MergeService mergeService = new MergeService(statusUpdateStrategy, alertUpdateStrategy);
+    private final MediaService mediaService = new MediaService();
 
 
     public void startDownload() {
@@ -115,5 +119,9 @@ public class M3U8ViewModel {
                     alertUpdateStrategy.updateStatus("下載失敗: "+ e.getMessage());
                 }
         );
+    }
+
+    public MediaPlayer playVideo(File videoFile) {
+        return mediaService.createMediaPlayer(videoFile);
     }
 }
