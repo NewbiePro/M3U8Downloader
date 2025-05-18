@@ -88,7 +88,7 @@ public class M3U8Controller {
     @FXML
     public void onPlayButtonClick(){
         try{
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("PlayerView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/tech/newbie/m3u8downloader/PlayerView.fxml"));
             Parent root = loader.load();
 
             PlayerController controller = loader.getController();
@@ -112,8 +112,8 @@ public class M3U8Controller {
 
 
         } catch (IOException e) {
-            e.printStackTrace();
             alert.updateStatus("無法啟動播放器: "+ e.getMessage());
+            e.printStackTrace();
         }
 
     }

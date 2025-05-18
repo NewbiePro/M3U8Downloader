@@ -29,7 +29,6 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-
 @Getter
 @Setter
 public class M3U8ViewModel {
