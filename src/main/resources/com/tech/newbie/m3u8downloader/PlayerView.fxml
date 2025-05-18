@@ -13,13 +13,13 @@
     </center>
 
     <bottom>
-        <VBox spacing="5" padding="10">
+        <VBox spacing="5" padding="10 15 10 15">
             <Slider fx:id="progressSlider" min="0" max="100" value="0"/>
             <HBox spacing="10">
                 <Button fx:id="playPauseButton" text="▶"/>
                 <Label fx:id="timeLabel" text="00:00 / 00:00"/>
                 <Label text="Volume"/>
-                <Slider fx:id="volumeSlider" max="1" value="0.5"/>
+                <Slider fx:id="volumeSlider" max="1.0" value="0.5"/>
             </HBox>
         </VBox>
     </bottom>
