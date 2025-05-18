@@ -3,28 +3,30 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.media.MediaView?>
-
 <?import javafx.geometry.Insets?>
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.tech.newbie.m3u8downloader.controller.PlayerController"
-            prefWidth="800" prefHeight="600">
+            prefWidth="800" prefHeight="600"
+            style="-fx-background-color: #1e1e1e;">
 
     <center>
-        <MediaView fx:id="mediaView" fitWidth="800" fitHeight="450"/>
+        <MediaView fx:id="mediaView" fitWidth="800" fitHeight="450" />
     </center>
 
     <bottom>
-        <VBox spacing="5">
+        <VBox spacing="8" alignment="CENTER" style="-fx-background-color: #2b2b2b;">
             <padding>
-                <Insets top="10" right="10" bottom="10" left="10"/>
+                <Insets top="12" right="20" bottom="12" left="20"/>
             </padding>
-            <Label text="Video Play"/>
-            <Slider fx:id="progressSlider" min="0" max="100" value="0"/>
-            <HBox spacing="10">
-                <Button fx:id="playPauseButton" text="▶"/>
-                <Label fx:id="timeLabel" text="00:00 / 00:00"/>
-                <Label text="Volume"/>
-                <Slider fx:id="volumeSlider" max="1.0" value="0.5"/>
+            <Label text="Video Play" style="-fx-text-fill: white; -fx-font-size: 14px;"/>
+            <Slider fx:id="progressSlider" min="0" max="100" value="0"
+                    style="-fx-padding: 4 0;" />
+            <HBox spacing="12" alignment="CENTER">
+                <Button fx:id="playPauseButton" text="▶" style="-fx-font-size: 14px;"/>
+                <Label fx:id="timeLabel" text="00:00 / 00:00" style="-fx-text-fill: white;"/>
+                <Label text="Volume" style="-fx-text-fill: white;"/>
+                <Slider fx:id="volumeSlider" max="1.0" value="0.5"
+                        style="-fx-pref-width: 100px;" />
             </HBox>
         </VBox>
     </bottom>
