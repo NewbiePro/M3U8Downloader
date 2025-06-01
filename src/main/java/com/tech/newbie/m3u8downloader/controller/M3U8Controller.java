@@ -118,7 +118,7 @@ public class M3U8Controller {
 
     private void playVideo(File videoFile){
         try{
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/com/tech/newbie/m3u8downloader/PlayerView.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PlayerView.fxml"));
             Parent root = loader.load();
 
             PlayerController controller = loader.getController();
