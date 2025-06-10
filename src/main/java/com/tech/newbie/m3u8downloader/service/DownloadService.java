@@ -1,5 +1,6 @@
 package com.tech.newbie.m3u8downloader.service;
 
+import com.tech.newbie.m3u8downloader.config.AppConfig;
 import com.tech.newbie.m3u8downloader.service.strategy.ProgressBarUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
 
@@ -26,6 +27,7 @@ public class DownloadService {
     private final StatusUpdateStrategy<String> statusUpdateStrategy;
     private final StatusUpdateStrategy<Double> progressUpdateStrategy;
     private final AtomicInteger counter = new AtomicInteger(1);
+    private final AppConfig appConfig = AppConfig.getInstance();
 
     public DownloadService(StatusUpdateStrategy<String> statusUpdateStrategy, StatusUpdateStrategy<Double> progressUpdateStrategy) {
         this.statusUpdateStrategy = statusUpdateStrategy;
@@ -39,7 +41,7 @@ public class DownloadService {
         counter.set(1);
         // 創建一個固定的線程池
         // TODO create a customized threadpool
-        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        ExecutorService executorService = Executors.newFixedThreadPool(appConfig.getMaxThreads());
         List<CompletableFuture<Void>> futures = IntStream.range(0, tsUrls.size())
                 .mapToObj(
                         index -> CompletableFuture.runAsync(
@@ -72,13 +74,14 @@ public class DownloadService {
         HttpClient client = HttpClient.newBuilder().build();
         int index = counter.getAndIncrement();
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
+
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
                 .build();
-        HttpResponse<byte[]> response = null;
-        int maxRetries = 10;
+
+        HttpResponse<byte[]> response;
+        int maxRetries = appConfig.getMaxRetries();
         int attempt = 0;
-        // retries 10 times
         while (true){
             try{
                 // ts file
