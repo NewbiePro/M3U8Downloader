@@ -27,7 +27,7 @@ public class MergeService {
         for (int i = 1; i <= totalFiles; i++) {
             fileListContent.append("file '").append(baseFilePath)
                     .append(File.separator).append(String.format(TS_FORMAT, baseFileName, i))
-                    .append(" '\n");
+                    .append("'\n");
         }
 
         // save fileList.txt

@@ -111,7 +111,7 @@ public class M3U8Controller {
         if (selectedFile != null) {
             playVideo(selectedFile);
         } else {
-            alert.updateStatus("未選擇影片");
+            alert.updateStatus("Please select a video");
         }
 
     }
@@ -135,7 +135,7 @@ public class M3U8Controller {
 
 
         } catch (IOException e) {
-            alert.updateStatus("無法啟動播放器: "+ e.getMessage());
+            alert.updateStatus("Could not play the video: "+ e.getMessage());
             e.printStackTrace();
         }
     }
