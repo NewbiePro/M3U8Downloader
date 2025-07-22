@@ -73,14 +73,14 @@ public class M3U8ViewModel {
             HttpClient client = HttpClient.newHttpClient();
             // 0- build request
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(m3u8Url))
+                    .uri(URI.create(m3u8Url.replaceAll("\\s+","")))
                     .build();
 
             HttpResponse<String> response;
-            // 1- fetch m3u8 file
+            // 1- send m3u8 request
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            // 2- get all ts urls
-            List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body());
+            // 2- parse all ts urls by response
+            List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body(), m3u8Url);
             // 3- download all ts files
             downloadService.parallelDownloadTsFiles(tsUrls,
                     path,

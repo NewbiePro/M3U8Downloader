@@ -109,5 +109,4 @@ public class DownloadService {
         progressCallback.accept(progress);
         System.out.printf(DOWNLOADED_FORMAT, Thread.currentThread().getName(), index, size);
     }
-
 }

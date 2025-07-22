@@ -8,9 +8,12 @@ import java.util.regex.Pattern;
 public class HttpUtil {
 
     public static boolean isValidUrl(String url){
-        String regex = "^(https?)://\\S+\\.m3u8(\\?.*)?$";
+        if(StringUtils.isEmpty(url)){
+            return false;
+        }
+        String regex = "^(https?)://\\S+\\.m3u8(\\?.*)?\\s*$";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(url);
-       return !StringUtils.isEmpty(url) && matcher.matches();
+       return matcher.matches();
     }
 }

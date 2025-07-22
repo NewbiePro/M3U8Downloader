@@ -15,14 +15,16 @@ public class M3U8ParserService {
         this.strategy = strategy;
     }
 
-    public List<String> parseM3U8Content(String content) {
+    public List<String> parseM3U8Content(String content, String requestUrl) {
         strategy.updateStatus("parsing M3U8..........");
         if (!content.contains(M3U8_HEADER)) {
             strategy.updateStatus("invalid m3u8 url");
             return Collections.emptyList();
         }
+        String urlPath = requestUrl.substring(0, requestUrl.lastIndexOf("/") + 1);
         List<String> tsFiles = content.lines()
-                .filter(line -> !line.startsWith("#") && !line.isBlank())
+                .filter(line -> !line.isBlank() && !line.startsWith("#"))
+                .map(line -> line.startsWith("https") ? line : urlPath + line)
                 .toList();
         strategy.updateStatus("There are "+ tsFiles.size()+" files");
         return tsFiles;
