@@ -65,7 +65,7 @@ public class M3U8ViewModel {
 
     private void performDownload() {
         try {
-            String m3u8Url = inputArea.get();
+            String m3u8Url = inputArea.get().replaceAll("\\s+",StringUtils.EMPTY);
 
             // clear previous output
             resetUIState();
@@ -73,7 +73,7 @@ public class M3U8ViewModel {
             HttpClient client = HttpClient.newHttpClient();
             // 0- build request
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(m3u8Url.replaceAll("\\s+","")))
+                    .uri(URI.create(m3u8Url))
                     .build();
 
             HttpResponse<String> response;
