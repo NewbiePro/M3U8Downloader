@@ -23,7 +23,7 @@ public class M3U8ParserService {
         }
         String urlPath = requestUrl.substring(0, requestUrl.lastIndexOf("/") + 1);
         List<String> tsFiles = content.lines()
-                .filter(line -> !line.isBlank() && !line.startsWith("#"))
+                .filter(line -> !line.isBlank() && !line.startsWith("#") && !line.startsWith("/"))
                 .map(line -> line.startsWith("https") ? line : urlPath + line)
                 .toList();
         strategy.updateStatus("There are "+ tsFiles.size()+" files");
