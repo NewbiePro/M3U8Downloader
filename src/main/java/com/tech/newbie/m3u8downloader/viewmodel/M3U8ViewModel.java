@@ -62,7 +62,7 @@ public class M3U8ViewModel {
 
     public void startDownload() {
         Thread thread = new Thread(this::performDownload);
-        // Set as a daemon thread to ensure it terminates automatically once the JAVAFX application thread(UI) terminate
+        // Set as a daemon thread to ensure it terminates once the JAVAFX application thread(UI) terminate
         thread.setDaemon(true);
         thread.start();
     }
