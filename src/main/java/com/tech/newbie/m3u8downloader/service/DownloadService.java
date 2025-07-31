@@ -3,6 +3,7 @@ package com.tech.newbie.m3u8downloader.service;
 import com.tech.newbie.m3u8downloader.config.AppConfig;
 import com.tech.newbie.m3u8downloader.service.strategy.ProgressBarUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.io.IOException;
@@ -20,9 +21,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
-import static com.tech.newbie.m3u8downloader.common.Constant.DOWNLOADED_FORMAT;
-import static com.tech.newbie.m3u8downloader.common.Constant.TS_FORMAT;
+import static com.tech.newbie.m3u8downloader.common.constant.Constant.TS_FORMAT;
 
+@Slf4j
 public class DownloadService {
     private final StatusUpdateStrategy<String> statusUpdateStrategy;
     private final StatusUpdateStrategy<Double> progressUpdateStrategy;
@@ -37,6 +38,7 @@ public class DownloadService {
     // 10min: original downloader
     // 6min: single thread on downloading all ts files
     public void parallelDownloadTsFiles(List<String> tsUrls, String outputDir, String fileName) {
+        log.info("parallel downloading ts files......");
         statusUpdateStrategy.updateStatus("downloading.........");
         counter.set(1);
         // 創建一個固定的線程池
@@ -66,7 +68,7 @@ public class DownloadService {
 
         //關閉線程池
         executorService.shutdown();
-        System.out.println("shut down thread pool......");
+        log.info("shut down thread pool......");
         statusUpdateStrategy.updateStatus("shut down thread pool.........");
     }
 
@@ -87,7 +89,7 @@ public class DownloadService {
                 // ts file
                 response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
                 if (response.statusCode() != 200 || response.body() == null || response.body().length == 0) {
-                    System.out.println("invalid response for ts segment: "+ tsUrl + " [status: "+ response.statusCode() +" ]");
+                    log.error("invalid response for ts segment: {} [status: {} ]", tsUrl, response.statusCode());
                     throw new IOException("invalid response");
                 }
                 // ts file output to directory
@@ -95,7 +97,7 @@ public class DownloadService {
                 break;
             } catch (IOException e){
                 attempt++;
-                System.out.println(e.getMessage());
+                log.error(e.getMessage());
                 if(attempt >= maxRetries){
                     throw new RuntimeException(String.format("Attempt %d failed to fetch ts: %s",attempt,tsUrl));
                 }
@@ -107,6 +109,6 @@ public class DownloadService {
         //update progress bar
         double progress = (double) index / size;
         progressCallback.accept(progress);
-        System.out.printf(DOWNLOADED_FORMAT, Thread.currentThread().getName(), index, size);
+        log.info("Thread:{} Downloaded......{}/{}", Thread.currentThread().getName(), index, size);
     }
 }

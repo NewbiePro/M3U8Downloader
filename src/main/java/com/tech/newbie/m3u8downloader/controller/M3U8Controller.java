@@ -17,12 +17,14 @@ import javafx.scene.control.TextField;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 
+@Slf4j
 public class M3U8Controller {
     @FXML
     public TextArea inputArea;
@@ -55,7 +57,7 @@ public class M3U8Controller {
         if (selectedDir != null) {
             String path = selectedDir.getAbsolutePath();
             m3U8ViewModel.setPath(path);
-            System.out.println("Path is: " + path);
+            log.info("Path is: {}", path);
         } else {
             alert.updateStatus("not chosen any directory, please check");
         }

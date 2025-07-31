@@ -11,6 +11,7 @@ module com.tech.newbie.m3u8downloader {
     requires org.apache.commons.lang3;
     requires java.desktop;
     requires javafx.media;
+    requires org.slf4j;
 
     opens com.tech.newbie.m3u8downloader to javafx.fxml;
     exports com.tech.newbie.m3u8downloader;

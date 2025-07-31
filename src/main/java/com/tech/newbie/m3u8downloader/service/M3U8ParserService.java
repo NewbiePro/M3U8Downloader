@@ -1,12 +1,14 @@
 package com.tech.newbie.m3u8downloader.service;
 
 import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.List;
 
-import static com.tech.newbie.m3u8downloader.common.Constant.M3U8_HEADER;
+import static com.tech.newbie.m3u8downloader.common.constant.Constant.M3U8_HEADER;
 
+@Slf4j
 public class M3U8ParserService {
 
     private final StatusUpdateStrategy<String> strategy;

@@ -2,7 +2,9 @@ package com.tech.newbie.m3u8downloader.service.strategy;
 
 import javafx.application.Platform;
 import javafx.beans.property.StringProperty;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class StatusTextUpdateStrategy implements  StatusUpdateStrategy<String>{
     private final StringProperty statusText;
 
@@ -12,7 +14,7 @@ public class StatusTextUpdateStrategy implements  StatusUpdateStrategy<String>{
 
     @Override
     public void updateStatus(String status) {
-        System.out.println("status: "+ status);
+        log.info("status: {}", status);
         Platform.runLater(()-> statusText.set(status));
     }
 }
