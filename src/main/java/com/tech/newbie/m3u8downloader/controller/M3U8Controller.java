@@ -2,8 +2,8 @@ package com.tech.newbie.m3u8downloader.controller;
 
 
 import com.tech.newbie.m3u8downloader.common.utils.HttpUtil;
-import com.tech.newbie.m3u8downloader.service.strategy.AlertUpdateStrategy;
-import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
+import com.tech.newbie.m3u8downloader.service.strategy.ui.AlertUpdateStrategy;
+import com.tech.newbie.m3u8downloader.service.strategy.ui.StatusUpdateStrategy;
 import com.tech.newbie.m3u8downloader.viewmodel.M3U8ViewModel;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;

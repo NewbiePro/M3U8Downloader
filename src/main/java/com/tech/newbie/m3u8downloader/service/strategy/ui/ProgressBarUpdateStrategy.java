@@ -1,4 +1,4 @@
-package com.tech.newbie.m3u8downloader.service.strategy;
+package com.tech.newbie.m3u8downloader.service.strategy.ui;
 
 import javafx.application.Platform;
 import javafx.beans.property.DoubleProperty;
@@ -6,7 +6,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
+public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double> {
     private final DoubleProperty progressBar;
     @Setter
     private volatile double lastProgress = 0.0;
@@ -29,7 +29,7 @@ public class ProgressBarUpdateStrategy implements StatusUpdateStrategy<Double>{
         synchronized (this){
             if ( progress > lastProgress && progress - lastProgress >=  UPDATE_THRESHOLD ){
                 lastProgress = progress;
-                log.info("progress bar: {}",progress);
+                log.info("progress bar: [{}]",progress);
                 Platform.runLater(() -> progressBar.set(progress));
             }
 

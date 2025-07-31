@@ -1,12 +1,10 @@
 package com.tech.newbie.m3u8downloader.service;
 
-import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
+import com.tech.newbie.m3u8downloader.service.strategy.ui.StatusUpdateStrategy;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 
 import static com.tech.newbie.m3u8downloader.common.constant.Constant.TS_FORMAT;
@@ -56,12 +54,9 @@ public class MergeService {
         pb.redirectErrorStream(true); // merge stdError & stdOutput
         Process process = pb.start();
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                log.info(line);
-            }
 
+
+        try {
             //wait for the command to complete
             int exitCode = process.waitFor();
             if (exitCode == 0) {

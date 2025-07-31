@@ -1,6 +1,6 @@
 package com.tech.newbie.m3u8downloader.service;
 
-import com.tech.newbie.m3u8downloader.service.strategy.StatusUpdateStrategy;
+import com.tech.newbie.m3u8downloader.service.strategy.ui.StatusUpdateStrategy;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;

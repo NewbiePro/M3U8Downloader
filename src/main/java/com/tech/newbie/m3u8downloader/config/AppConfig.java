@@ -29,6 +29,6 @@ public class AppConfig {
     }
 
     public int getTimeout() {
-        return Integer.parseInt(props.getProperty("download.timeout", "5000"));
+        return Integer.parseInt(props.getProperty("download.timeout", "50000"));
     }
 }
