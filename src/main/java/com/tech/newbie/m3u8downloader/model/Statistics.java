@@ -14,6 +14,7 @@ public class Statistics {
 
     private long totalTime; // 总耗时
     private long downloadTime; // 下载耗时
+    private long writeTime; // 写入耗时
     private long mergeTime; // 合并耗时
 
     private int totalTsFiles; // 总文件数
