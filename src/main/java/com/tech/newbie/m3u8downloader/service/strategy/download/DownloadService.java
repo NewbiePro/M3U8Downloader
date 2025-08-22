@@ -70,8 +70,6 @@ public abstract class DownloadService {
         } catch (Exception e){
             log.error("Download error", e);
             statusUpdateStrategy.updateStatus("Error Downloading");
-        } finally {
-            cleanup();
         }
 
     }
