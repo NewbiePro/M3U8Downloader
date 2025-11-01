@@ -3,8 +3,10 @@ package com.tech.newbie.m3u8downloader.service;
 import com.tech.newbie.m3u8downloader.service.strategy.ui.StatusUpdateStrategy;
 import lombok.extern.slf4j.Slf4j;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 
 import static com.tech.newbie.m3u8downloader.common.constant.Constant.TS_FORMAT;
@@ -54,6 +56,14 @@ public class MergeService {
         pb.redirectErrorStream(true); // merge stdError & stdOutput
         Process process = pb.start();
 
+        // 讀取 ffmpeg 的輸出（包含錯誤資訊）
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                log.info(line);
+            }
+        }
 
 
         try {
@@ -62,15 +72,20 @@ public class MergeService {
             if (exitCode == 0) {
                 log.info("merging completed，generated {}.mp4", baseFileName);
                 strategy.updateStatus("DONE");
+                removeFiles(fileListTxt, totalFiles, baseFilePath, baseFileName);
             } else {
                 log.info("ffmpeg執行失敗，錯誤代碼: {}", exitCode);
+                strategy.updateStatus("ERROR");
                 alert.updateStatus("ffmpeg執行失敗，錯誤代碼: " + exitCode);
             }
         } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
             log.error("interrupting, ", e);
+            strategy.updateStatus("ERROR");
+        } catch (Exception e){
+            log.error("error ", e);
+            strategy.updateStatus("ERROR");
         }
-
-        removeFiles(fileListTxt, totalFiles, baseFilePath, baseFileName);
     }
 
     private void writeToFile(File file, String content){

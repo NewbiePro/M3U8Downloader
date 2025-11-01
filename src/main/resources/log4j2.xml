@@ -1,7 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Configuration status="WARN">
     <Properties>
-        <Property name="pattern">%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} [%C{1}.%M():%line] - %msg%n</Property>
+        <!-- 日期格式 -->
+        <property name="LOG_DATE" value="%d{yyyy-MM-dd HH:mm:ss.SSS}" />
+        <!-- 執行緒名稱 -->
+        <property name="LOG_THREAD" value="[%t]" />
+        <!-- 日誌等級（左對齊寬度5） -->
+        <property name="LOG_LEVEL" value="%-5level" />
+        <!-- logger 名稱（限制長度20） -->
+        <property name="LOG_LOGGER" value="%-25logger{20}" />
+        <!-- 類名與行號（輕量版，只取 file:line） -->
+        <property name="LOG_LOCATION" value="[%file:%line]" />
+        <!-- 日誌內容 -->
+        <property name="LOG_MESSAGE" value="%msg" />
+        <!-- 換行 -->
+        <property name="LOG_NEWLINE" value="%n" />
+
+        <Property name="pattern"
+                  value = "${LOG_DATE} ${LOG_THREAD} ${LOG_LEVEL} ${LOG_LOCATION} ${LOG_MESSAGE} ${LOG_NEWLINE} "/>
     </Properties>
     <Appenders>
         <Console name="Console" target="SYSTEM_OUT">
@@ -16,12 +32,12 @@
     <Loggers>
         <Logger name="com.tech.newbie.m3u8downloader" level="debug" additivity="false">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="File"/>
+<!--            <AppenderRef ref="File"/>-->
         </Logger>
 
         <Root level="info">
             <AppenderRef ref="Console"/>
-            <AppenderRef ref="File"/>
+<!--            <AppenderRef ref="File"/>-->
         </Root>
     </Loggers>
 </Configuration>

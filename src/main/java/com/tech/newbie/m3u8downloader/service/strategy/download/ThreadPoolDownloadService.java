@@ -7,7 +7,9 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
 @Slf4j
@@ -18,7 +20,18 @@ public class ThreadPoolDownloadService extends DownloadService {
     public ThreadPoolDownloadService(StatusUpdateStrategy<String> statusUpdateStrategy,
                                      StatusUpdateStrategy<Double> progressUpdateStrategy) {
         super(statusUpdateStrategy, progressUpdateStrategy, DownloadType.THREAD_POOL);
-        executorService = Executors.newFixedThreadPool(appConfig.getMaxThreads());
+        executorService = new ThreadPoolExecutor(
+                15,
+                15,
+                1000,
+                TimeUnit.MILLISECONDS,
+                new LinkedBlockingDeque<>(100),
+                r -> {
+                    Thread thread = new Thread(r);
+                    thread.setName("m3u8-pool-" + thread.getName());
+                    return thread;
+                },
+                new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
 
