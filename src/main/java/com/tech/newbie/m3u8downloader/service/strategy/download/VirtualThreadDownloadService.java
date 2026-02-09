@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.IntStream;
 
 @Slf4j
 public class VirtualThreadDownloadService extends DownloadService{
@@ -17,30 +16,27 @@ public class VirtualThreadDownloadService extends DownloadService{
                                         StatusUpdateStrategy<Double> progressUpdateStrategy) {
         super(statusUpdateStrategy, progressUpdateStrategy, DownloadType.VIRTUAL_THREAD);
     }
+    private static final ExecutorService VIRTUAL_THREAD_POOL = Executors.newVirtualThreadPerTaskExecutor();
 
 
     @Override
     protected List<CompletableFuture<Void>> createDownloadFutures(List<String> tsUrls, String outputDir, String fileName) {
         log.info("Creating download futures with virtual threads...");
-        ExecutorService virtualThreadPool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("m3u8-virtual-thread-", 0 ).factory());
 
-        return IntStream.range(0, tsUrls.size())
-                .mapToObj(index ->
-                        CompletableFuture.runAsync(
-                                () -> {
-                                    String tsUrl = tsUrls.get(index);
-                                    try {
-                                        downloadTsFile(tsUrl,
-                                                outputDir,
-                                                fileName,
-                                                tsUrls.size(),
-                                                progressUpdateStrategy::updateStatus);
-                                    } catch (Exception e) {
-                                        //TODO 優化
-                                        log.error("Error downloading with virtual thread", e);
-                                    }
-                                },
-                                virtualThreadPool))
+
+        return tsUrls.stream().map(url -> CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                downloadTsFile(url,
+                                        outputDir,
+                                        fileName,
+                                        tsUrls.size(),
+                                        progressUpdateStrategy::updateStatus);
+                            } catch (Exception e) {
+                                log.error("Error downloading with virtual thread", e);
+                            }
+                        },
+                        VIRTUAL_THREAD_POOL))
                 .toList();
     }
 
