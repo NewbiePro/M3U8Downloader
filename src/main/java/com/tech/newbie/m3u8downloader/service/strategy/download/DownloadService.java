@@ -12,6 +12,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -92,24 +93,27 @@ public abstract class DownloadService {
                 .header("Accept", "*/*")
                 .build();
 
-        HttpResponse<byte[]> response;
         int maxRetries = appConfig.getMaxRetries();
         int attempt = 0;
         while (true) {
+            LIMITER.acquire();
             try {
-                LIMITER.acquire();
-                // ts file
-                response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-                if (response.statusCode() != 200 || response.body() == null || response.body().length == 0) {
+                // use InputStream mode, which saves memory
+                HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                int statusCode = response.statusCode();
+                if (statusCode != 200) {
+                    if (response.body() != null) response.body().close();
                     log.error("invalid response for ts segment: [{}] status: [{}]", tsUrl, response.statusCode());
                     throw new IOException("invalid response");
                 }
                 // ts file output to directory
-                Files.write(outputFile.toPath(), response.body());
+                try (InputStream is = response.body()) {
+                    Files.copy(is, outputFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+                }
                 break;
             } catch (IOException e) {
                 attempt++;
-                log.error(e.getMessage());
+                log.warn("Attempt {}/{} failed: {}", attempt, maxRetries, e.getMessage());
                 if (attempt >= maxRetries) {
                     log.error("Max retries reached for ts segment: [{}]", tsUrl);
                     throw new RuntimeException(String.format("Attempt %d failed to fetch ts: %s", attempt, tsUrl));
