@@ -21,8 +21,8 @@ public class ThreadPoolDownloadService extends DownloadService {
                                      StatusUpdateStrategy<Double> progressUpdateStrategy) {
         super(statusUpdateStrategy, progressUpdateStrategy, DownloadType.THREAD_POOL);
         executorService = new ThreadPoolExecutor(
-                15,
-                15,
+                30,
+                30,
                 1000,
                 TimeUnit.MILLISECONDS,
                 new LinkedBlockingDeque<>(100),

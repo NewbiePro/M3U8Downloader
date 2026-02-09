@@ -7,6 +7,9 @@ import com.tech.newbie.m3u8downloader.service.strategy.ui.ProgressBarUpdateStrat
 import com.tech.newbie.m3u8downloader.service.strategy.ui.StatusUpdateStrategy;
 import lombok.extern.slf4j.Slf4j;
 
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -14,9 +17,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -31,7 +37,7 @@ public abstract class DownloadService {
     protected final Statistics statistics;
 
     protected final AtomicInteger counter = new AtomicInteger(1);
-
+    private static final Semaphore LIMITER = new Semaphore(32);
 
     protected DownloadService(StatusUpdateStrategy<String> statusUpdateStrategy,
                               StatusUpdateStrategy<Double> progressUpdateStrategy,
@@ -42,6 +48,8 @@ public abstract class DownloadService {
         this.statistics = new Statistics(downloadType);
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(appConfig.getTimeout()))
+                .sslContext(getInsecureSslContext())
+                .version(HttpClient.Version.HTTP_1_1)
                 .build();
 
     }
@@ -60,14 +68,14 @@ public abstract class DownloadService {
         statusUpdateStrategy.updateStatus("Downloading....");
         counter.set(1);
 
-        try{
+        try {
             List<CompletableFuture<Void>> futures = createDownloadFutures(tsUrls, outputDir, fileName);
             CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
             allDone.join();
 
             statistics.setDownloadTime(System.currentTimeMillis() - startTime);
             afterDownload();
-        } catch (Exception e){
+        } catch (Exception e) {
             log.error("Download error", e);
             statusUpdateStrategy.updateStatus("Error Downloading");
         }
@@ -75,21 +83,23 @@ public abstract class DownloadService {
     }
 
     public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Consumer<Double> progressCallback) throws IOException, InterruptedException {
-        HttpClient client = HttpClient.newBuilder().build();
         int index = counter.getAndIncrement();
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
 
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(tsUrl))
+                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                .header("Accept", "*/*")
                 .build();
 
         HttpResponse<byte[]> response;
         int maxRetries = appConfig.getMaxRetries();
         int attempt = 0;
-        while (true){
-            try{
+        while (true) {
+            try {
+                LIMITER.acquire();
                 // ts file
-                response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
+                response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
                 if (response.statusCode() != 200 || response.body() == null || response.body().length == 0) {
                     log.error("invalid response for ts segment: [{}] status: [{}]", tsUrl, response.statusCode());
                     throw new IOException("invalid response");
@@ -97,15 +107,16 @@ public abstract class DownloadService {
                 // ts file output to directory
                 Files.write(outputFile.toPath(), response.body());
                 break;
-            } catch (IOException e){
+            } catch (IOException e) {
                 attempt++;
                 log.error(e.getMessage());
-                if(attempt >= maxRetries){
+                if (attempt >= maxRetries) {
                     log.error("Max retries reached for ts segment: [{}]", tsUrl);
-                    throw new RuntimeException(String.format("Attempt %d failed to fetch ts: %s",attempt,tsUrl));
+                    throw new RuntimeException(String.format("Attempt %d failed to fetch ts: %s", attempt, tsUrl));
                 }
                 Files.deleteIfExists(outputFile.toPath());
-                Thread.sleep(200L * attempt);
+            } finally {
+                LIMITER.release();
             }
         }
 
@@ -116,11 +127,10 @@ public abstract class DownloadService {
     }
 
 
-
     protected void afterDownload() {
         log.info("Finish Downloading, Download Duration: [{}], Total Ts Files: [{}]", statistics.getDownloadTime(), statistics.getTotalTsFiles());
         statusUpdateStrategy.updateStatus("Download completed");
-        if(progressUpdateStrategy instanceof ProgressBarUpdateStrategy) {
+        if (progressUpdateStrategy instanceof ProgressBarUpdateStrategy) {
             ((ProgressBarUpdateStrategy) progressUpdateStrategy).forceComplete();
         }
     }
@@ -131,6 +141,27 @@ public abstract class DownloadService {
     protected abstract List<CompletableFuture<Void>> createDownloadFutures(List<String> tsUrls, String outputDir, String fileName);
 
 
+    private SSLContext getInsecureSslContext() {
+        try {
+            TrustManager[] trustAllCerts = new TrustManager[]{
+                    new X509TrustManager() {
+                        public X509Certificate[] getAcceptedIssuers() {
+                            return null;
+                        }
 
+                        public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                        }
+
+                        public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                        }
+                    }
+            };
+            SSLContext sc = SSLContext.getInstance("TLSv1.2");
+            sc.init(null, trustAllCerts, new SecureRandom());
+            return sc;
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create insecure SSL context", e);
+        }
+    }
 
 }

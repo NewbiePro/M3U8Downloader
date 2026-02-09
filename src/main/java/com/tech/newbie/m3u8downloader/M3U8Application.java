@@ -4,9 +4,11 @@ import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 
+@Slf4j
 public class M3U8Application extends Application {
     public static final int WINDOW_WIDTH = 600;
     public static final int WINDOW_HEIGHT = 400;
