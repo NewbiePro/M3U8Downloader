@@ -1,7 +1,6 @@
 package com.tech.newbie.m3u8downloader.controller;
 
-
-import com.tech.newbie.m3u8downloader.common.utils.HttpUtil;
+import com.tech.newbie.m3u8downloader.core.common.utils.HttpUtil;
 import com.tech.newbie.m3u8downloader.service.strategy.ui.AlertUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.ui.StatusUpdateStrategy;
 import com.tech.newbie.m3u8downloader.viewmodel.M3U8ViewModel;
@@ -39,8 +38,9 @@ public class M3U8Controller {
 
     private final M3U8ViewModel m3U8ViewModel = new M3U8ViewModel();
     private final StatusUpdateStrategy<String> alert = new AlertUpdateStrategy();
+
     @FXML
-    public void initialize(){
+    public void initialize() {
         // Bind UI components to ViewModel Properties
         statusText.textProperty().bindBidirectional(m3U8ViewModel.getStatusText());
         progressBar.progressProperty().bindBidirectional(m3U8ViewModel.getProgressBar());
@@ -70,17 +70,17 @@ public class M3U8Controller {
         String path = m3U8ViewModel.getPath();
         String file = fileNameField.getText();
 
-        if (StringUtils.isBlank(path)){
+        if (StringUtils.isBlank(path)) {
             alert.updateStatus("Please select a downloading path");
             return;
         }
 
-        if (!HttpUtil.isValidUrl(inputUrl)){
+        if (!HttpUtil.isValidUrl(inputUrl)) {
             alert.updateStatus("Please enter a valid url");
             return;
         }
 
-        if(StringUtils.isBlank(file)){
+        if (StringUtils.isBlank(file)) {
             alert.updateStatus("Please enter a file name");
             return;
         }
@@ -89,9 +89,9 @@ public class M3U8Controller {
     }
 
     @FXML
-    public void onPlayButtonClick(){
+    public void onPlayButtonClick() {
         Optional<File> fileOpt = m3U8ViewModel.getVideoFile();
-        if (fileOpt.isEmpty()){
+        if (fileOpt.isEmpty()) {
             alert.updateStatus("video not exists, please download first");
             return;
         }
@@ -104,8 +104,7 @@ public class M3U8Controller {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select Video File");
         fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Video Files","*.mp4","*.mkv")
-        );
+                new FileChooser.ExtensionFilter("Video Files", "*.mp4", "*.mkv"));
 
         Stage stage = (Stage) inputArea.getScene().getWindow();
         File selectedFile = fileChooser.showOpenDialog(stage);
@@ -118,13 +117,12 @@ public class M3U8Controller {
 
     }
 
-    private void playVideo(File videoFile){
-        try{
+    private void playVideo(File videoFile) {
+        try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/PlayerView.fxml"));
             Parent root = loader.load();
 
             PlayerController controller = loader.getController();
-
 
             // call player
             controller.initializePlayer(videoFile.toURI().toString());
@@ -135,13 +133,9 @@ public class M3U8Controller {
             stage.setTitle("Video Player");
             stage.show();
 
-
         } catch (IOException e) {
-            alert.updateStatus("Could not play the video: "+ e.getMessage());
+            alert.updateStatus("Could not play the video: " + e.getMessage());
             e.printStackTrace();
         }
     }
 }
-
-
-

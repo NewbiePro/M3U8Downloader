@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.Collections;
 import java.util.List;
 
-import static com.tech.newbie.m3u8downloader.common.constant.Constant.M3U8_HEADER;
+import static com.tech.newbie.m3u8downloader.core.common.constant.Constant.M3U8_HEADER;
 
 @Slf4j
 public class M3U8ParserService {
@@ -28,7 +28,7 @@ public class M3U8ParserService {
                 .filter(line -> !line.isBlank() && !line.startsWith("#") && !line.startsWith("/"))
                 .map(line -> line.startsWith("https") ? line : urlPath + line)
                 .toList();
-        strategy.updateStatus("There are "+ tsFiles.size()+" files");
+        strategy.updateStatus("There are " + tsFiles.size() + " files");
         return tsFiles;
     }
 

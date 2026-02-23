@@ -21,7 +21,7 @@
 
     <!-- URL Input Section -->
     <VBox spacing="10" alignment="CENTER">
-        <TextArea fx:id="inputArea" promptText="Enter URL" prefRowCount="4" prefWidth="600" wrapText="true"/>
+        <TextArea fx:id="inputArea" promptText="Enter URL or paste cURL request" prefRowCount="4" prefWidth="600" wrapText="true"/>
     </VBox>
     <TextField fx:id="fileNameField" promptText="File Name" maxWidth="600"/>
 

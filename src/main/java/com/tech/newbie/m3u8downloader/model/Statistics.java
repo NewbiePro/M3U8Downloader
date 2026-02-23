@@ -1,7 +1,7 @@
 package com.tech.newbie.m3u8downloader.model;
 
-import com.tech.newbie.m3u8downloader.common.enums.DownloadType;
-import com.tech.newbie.m3u8downloader.common.utils.TimeUtil;
+import com.tech.newbie.m3u8downloader.core.common.enums.DownloadType;
+import com.tech.newbie.m3u8downloader.core.common.utils.TimeUtil;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
@@ -21,7 +21,6 @@ public class Statistics {
     private long totalBytes; // 总字节数
     private int successCount; // 成功下载数
     private int failedCount; // 失败数
-
 
     public Statistics(DownloadType downloadType) {
         this.downloadType = downloadType;

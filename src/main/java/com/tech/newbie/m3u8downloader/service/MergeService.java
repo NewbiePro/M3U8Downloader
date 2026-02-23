@@ -9,7 +9,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 
-import static com.tech.newbie.m3u8downloader.common.constant.Constant.TS_FORMAT;
+import static com.tech.newbie.m3u8downloader.core.common.constant.Constant.TS_FORMAT;
 
 @Slf4j
 public class MergeService {
@@ -36,8 +36,6 @@ public class MergeService {
         File fileListTxt = new File(baseFilePath, "fileList.txt");
         writeToFile(fileListTxt, fileListContent.toString());
 
-
-
         // log command
         File outputFile = new File(baseFilePath, baseFileName + ".mp4");
         String command = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s",
@@ -47,9 +45,9 @@ public class MergeService {
         log.info("command: {}", command);
         // execute command
         ProcessBuilder pb = new ProcessBuilder(
-                "ffmpeg","-f","concat","-safe","0",
+                "ffmpeg", "-f", "concat", "-safe", "0",
                 "-i", fileListTxt.getAbsolutePath(),
-                "-c", "copy",outputFile.getAbsolutePath()
+                "-c", "copy", outputFile.getAbsolutePath()
 
         );
 
@@ -65,9 +63,8 @@ public class MergeService {
             }
         }
 
-
         try {
-            //wait for the command to complete
+            // wait for the command to complete
             int exitCode = process.waitFor();
             if (exitCode == 0) {
                 log.info("merging completed，generated {}.mp4", baseFileName);
@@ -82,28 +79,29 @@ public class MergeService {
             Thread.currentThread().interrupt();
             log.error("interrupting, ", e);
             strategy.updateStatus("ERROR");
-        } catch (Exception e){
+        } catch (Exception e) {
             log.error("error ", e);
             strategy.updateStatus("ERROR");
         }
     }
 
-    private void writeToFile(File file, String content){
+    private void writeToFile(File file, String content) {
         try {
             Files.write(file.toPath(), content.getBytes());
         } catch (IOException e) {
-            log.error("write error ",e);
+            log.error("write error ", e);
         }
     }
+
     // rm txt files & .ts files
-    private void removeFiles(File fileListTxt, int totalTsCount, String baseFilePath, String baseFileName){
+    private void removeFiles(File fileListTxt, int totalTsCount, String baseFilePath, String baseFileName) {
         try {
             Files.deleteIfExists(fileListTxt.toPath());
-            for (int i = 1; i <= totalTsCount ; i++) {
+            for (int i = 1; i <= totalTsCount; i++) {
                 File tsFile = new File(baseFilePath, String.format(TS_FORMAT, baseFileName, i));
                 Files.deleteIfExists(tsFile.toPath());
             }
-        } catch (IOException e){
+        } catch (IOException e) {
             log.info("remove files error ", e);
         }
     }

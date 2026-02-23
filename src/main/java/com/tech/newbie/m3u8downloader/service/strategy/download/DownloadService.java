@@ -1,7 +1,7 @@
 package com.tech.newbie.m3u8downloader.service.strategy.download;
 
-import com.tech.newbie.m3u8downloader.common.enums.DownloadType;
-import com.tech.newbie.m3u8downloader.config.AppConfig;
+import com.tech.newbie.m3u8downloader.core.common.enums.DownloadType;
+import com.tech.newbie.m3u8downloader.core.config.AppConfig;
 import com.tech.newbie.m3u8downloader.model.Statistics;
 import com.tech.newbie.m3u8downloader.service.strategy.ui.ProgressBarUpdateStrategy;
 import com.tech.newbie.m3u8downloader.service.strategy.ui.StatusUpdateStrategy;
@@ -22,12 +22,13 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import static com.tech.newbie.m3u8downloader.common.constant.Constant.TS_FORMAT;
+import static com.tech.newbie.m3u8downloader.core.common.constant.Constant.TS_FORMAT;
 
 @Slf4j
 public abstract class DownloadService {
@@ -41,8 +42,8 @@ public abstract class DownloadService {
     private static final Semaphore LIMITER = new Semaphore(32);
 
     protected DownloadService(StatusUpdateStrategy<String> statusUpdateStrategy,
-                              StatusUpdateStrategy<Double> progressUpdateStrategy,
-                              DownloadType downloadType) {
+            StatusUpdateStrategy<Double> progressUpdateStrategy,
+            DownloadType downloadType) {
         this.statusUpdateStrategy = statusUpdateStrategy;
         this.progressUpdateStrategy = progressUpdateStrategy;
         this.appConfig = AppConfig.getInstance();
@@ -58,7 +59,7 @@ public abstract class DownloadService {
     // 10min: original downloader
     // 6min: single thread on downloading all ts files
     // template method - define download proces
-    public void downloadTsFiles(List<String> tsUrls, String outputDir, String fileName) {
+    public void downloadTsFiles(List<String> tsUrls, String outputDir, String fileName, Map<String, String> headers) {
         long startTime = System.currentTimeMillis();
         statistics.setTotalTsFiles(tsUrls.size());
         statistics.setSuccessCount(0);
@@ -70,7 +71,7 @@ public abstract class DownloadService {
         counter.set(1);
 
         try {
-            List<CompletableFuture<Void>> futures = createDownloadFutures(tsUrls, outputDir, fileName);
+            List<CompletableFuture<Void>> futures = createDownloadFutures(tsUrls, outputDir, fileName, headers);
             CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
             allDone.join();
 
@@ -83,15 +84,23 @@ public abstract class DownloadService {
 
     }
 
-    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Consumer<Double> progressCallback) throws IOException, InterruptedException {
+    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size,
+            Consumer<Double> progressCallback, Map<String, String> headers) throws IOException, InterruptedException {
         int index = counter.getAndIncrement();
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
 
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(tsUrl))
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                .header("Accept", "*/*")
-                .build();
+        HttpRequest.Builder builder = HttpRequest.newBuilder()
+                .uri(URI.create(tsUrl));
+
+        if (headers != null && !headers.isEmpty()) {
+            headers.forEach(builder::header);
+        } else {
+            builder.header("User-Agent",
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                    .header("Accept", "*/*");
+        }
+
+        HttpRequest request = builder.build();
 
         int maxRetries = appConfig.getMaxRetries();
         int attempt = 0;
@@ -99,10 +108,12 @@ public abstract class DownloadService {
             LIMITER.acquire();
             try {
                 // use InputStream mode, which saves memory
-                HttpResponse<InputStream> response = httpClient.send(request, HttpResponse.BodyHandlers.ofInputStream());
+                HttpResponse<InputStream> response = httpClient.send(request,
+                        HttpResponse.BodyHandlers.ofInputStream());
                 int statusCode = response.statusCode();
                 if (statusCode != 200) {
-                    if (response.body() != null) response.body().close();
+                    if (response.body() != null)
+                        response.body().close();
                     log.error("invalid response for ts segment: [{}] status: [{}]", tsUrl, response.statusCode());
                     throw new IOException("invalid response");
                 }
@@ -124,15 +135,15 @@ public abstract class DownloadService {
             }
         }
 
-        //update progress bar
+        // update progress bar
         double progress = (double) index / size;
         progressCallback.accept(progress);
         log.info("Thread:{} Downloaded......{}/{}", Thread.currentThread().getName(), index, size);
     }
 
-
     protected void afterDownload() {
-        log.info("Finish Downloading, Download Duration: [{}], Total Ts Files: [{}]", statistics.getDownloadTime(), statistics.getTotalTsFiles());
+        log.info("Finish Downloading, Download Duration: [{}], Total Ts Files: [{}]", statistics.getDownloadTime(),
+                statistics.getTotalTsFiles());
         statusUpdateStrategy.updateStatus("Download completed");
         if (progressUpdateStrategy instanceof ProgressBarUpdateStrategy) {
             ((ProgressBarUpdateStrategy) progressUpdateStrategy).forceComplete();
@@ -142,12 +153,12 @@ public abstract class DownloadService {
     // for override
     protected abstract void cleanup();
 
-    protected abstract List<CompletableFuture<Void>> createDownloadFutures(List<String> tsUrls, String outputDir, String fileName);
-
+    protected abstract List<CompletableFuture<Void>> createDownloadFutures(List<String> tsUrls, String outputDir,
+            String fileName, Map<String, String> headers);
 
     private SSLContext getInsecureSslContext() {
         try {
-            TrustManager[] trustAllCerts = new TrustManager[]{
+            TrustManager[] trustAllCerts = new TrustManager[] {
                     new X509TrustManager() {
                         public X509Certificate[] getAcceptedIssuers() {
                             return null;

@@ -1,6 +1,6 @@
 package com.tech.newbie.m3u8downloader.viewmodel;
 
-import com.tech.newbie.m3u8downloader.common.utils.TimeUtil;
+import com.tech.newbie.m3u8downloader.core.common.utils.TimeUtil;
 import com.tech.newbie.m3u8downloader.model.Video;
 import com.tech.newbie.m3u8downloader.service.M3U8ParserService;
 import com.tech.newbie.m3u8downloader.service.MediaService;
@@ -28,8 +28,10 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
+
 @Slf4j
 @Getter
 @Setter
@@ -39,8 +41,8 @@ public class M3U8ViewModel {
     private final StringProperty statusText = new SimpleStringProperty();
     private final DoubleProperty progressBar = new SimpleDoubleProperty();
     private final StringProperty timeLabel = new SimpleStringProperty();
-    private final StringProperty inputArea=  new SimpleStringProperty();
-    private final StringProperty fileName= new SimpleStringProperty();
+    private final StringProperty inputArea = new SimpleStringProperty();
+    private final StringProperty fileName = new SimpleStringProperty();
     private String path;
     // UI strategy
     private final StatusUpdateStrategy<String> statusUpdateStrategy = new StatusTextUpdateStrategy(statusText);
@@ -49,20 +51,19 @@ public class M3U8ViewModel {
     private final StatusUpdateStrategy<Long> timeLabelUpdateStrategy = new TimeLabelUpdateStrategy(timeLabel);
 
     // dependency
-    private final M3U8ParserService m3U8ParserService =
-            new M3U8ParserService(statusUpdateStrategy);
+    private final M3U8ParserService m3U8ParserService = new M3U8ParserService(statusUpdateStrategy);
 
-    private final DownloadService downloadService =
-            new VirtualThreadDownloadService(statusUpdateStrategy, progressBarUpdateStrategy);
+    private final DownloadService downloadService = new VirtualThreadDownloadService(statusUpdateStrategy,
+            progressBarUpdateStrategy);
 
     private final MergeService mergeService = new MergeService(statusUpdateStrategy, alertUpdateStrategy);
 
     private final MediaService mediaService = new MediaService();
 
-
     public void startDownload() {
         Thread thread = new Thread(this::performDownload);
-        // Set as a daemon thread to ensure it terminates once the JAVAFX application thread(UI) terminate
+        // Set as a daemon thread to ensure it terminates once the JAVAFX application
+        // thread(UI) terminate
         thread.setDaemon(true);
         thread.start();
     }
@@ -71,16 +72,31 @@ public class M3U8ViewModel {
         try {
             long start = System.currentTimeMillis();
 
-            String m3u8Url = inputArea.get().replaceAll("\\s+",StringUtils.EMPTY);
+            String rawInput = inputArea.get().trim();
+            String m3u8Url = rawInput;
+            Map<String, String> headers = null;
+
+            if (rawInput.startsWith("curl ")) {
+                com.tech.newbie.m3u8downloader.common.utils.CurlParser.CurlRequest curlReq = com.tech.newbie.m3u8downloader.common.utils.CurlParser
+                        .parse(rawInput);
+                if (curlReq != null && curlReq.getUrl() != null) {
+                    m3u8Url = curlReq.getUrl();
+                    headers = curlReq.getHeaders();
+                }
+            } else {
+                m3u8Url = rawInput.replaceAll("\\s+", StringUtils.EMPTY);
+            }
 
             // clear previous output
             resetUIState();
 
             HttpClient client = HttpClient.newHttpClient();
             // 0- build request
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(m3u8Url))
-                    .build();
+            HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(m3u8Url));
+            if (headers != null && !headers.isEmpty()) {
+                headers.forEach(builder::header);
+            }
+            HttpRequest request = builder.build();
 
             HttpResponse<String> response;
             // 1- send m3u8 request
@@ -88,7 +104,7 @@ public class M3U8ViewModel {
             // 2- parse all ts urls by response
             List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body(), m3u8Url);
             // 3- download all ts files
-            downloadService.downloadTsFiles(tsUrls, path, fileName.get());
+            downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers);
             // 4- merge all ts files
             mergeService.mergeTsToMp4(path, fileName.get(), tsUrls.size());
 
@@ -98,30 +114,28 @@ public class M3U8ViewModel {
             timeLabelUpdateStrategy.updateStatus(duration);
             alertUpdateStrategy.updateStatus(TimeUtil.formatDuration(duration));
         } catch (Exception e) {
-            log.error("error: ",e);
+            log.error("error: ", e);
             statusUpdateStrategy.updateStatus("error please check......" + e.getMessage());
-            alertUpdateStrategy.updateStatus("下載失敗: "+ e.getMessage());
+            alertUpdateStrategy.updateStatus("下載失敗: " + e.getMessage());
         }
 
     }
 
     private void resetUIState() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        ((ProgressBarUpdateStrategy)progressBarUpdateStrategy).setLastProgress(0.0);
+        ((ProgressBarUpdateStrategy) progressBarUpdateStrategy).setLastProgress(0.0);
         Platform.runLater(
                 () -> {
                     progressBar.set(0.0);
                     timeLabel.set(StringUtils.EMPTY);
                     latch.countDown();
-                }
-        );
+                });
         latch.await();
     }
 
-
     public Optional<File> getVideoFile() {
         Video video = new Video(fileName.get(), path);
-        if(!video.exists()){
+        if (!video.exists()) {
             return Optional.empty();
         }
 

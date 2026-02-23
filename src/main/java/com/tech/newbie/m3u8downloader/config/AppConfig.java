@@ -1,4 +1,4 @@
-package com.tech.newbie.m3u8downloader.config;
+package com.tech.newbie.m3u8downloader.core.config;
 
 import java.io.IOException;
 import java.io.InputStream;

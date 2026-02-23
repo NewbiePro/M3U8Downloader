@@ -1,4 +1,4 @@
-package com.tech.newbie.m3u8downloader.common.enums;
+package com.tech.newbie.m3u8downloader.core.common.enums;
 
 import lombok.Getter;
 

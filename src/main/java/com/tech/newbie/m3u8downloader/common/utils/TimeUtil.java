@@ -1,4 +1,4 @@
-package com.tech.newbie.m3u8downloader.common.utils;
+package com.tech.newbie.m3u8downloader.core.common.utils;
 
 public class TimeUtil {
 
