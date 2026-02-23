@@ -17,6 +17,8 @@ import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +29,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -43,6 +46,7 @@ public class M3U8ViewModel {
     private final StringProperty timeLabel = new SimpleStringProperty();
     private final StringProperty inputArea = new SimpleStringProperty();
     private final StringProperty fileName = new SimpleStringProperty();
+    private final ObjectProperty<Map<String, Long>> phaseTimes = new SimpleObjectProperty<>();
     private String path;
     // UI strategy
     private final UpdateCallback<String> statusUpdateStrategy = new StatusTextUpdateStrategy(statusText);
@@ -98,17 +102,32 @@ public class M3U8ViewModel {
             }
             HttpRequest request = builder.build();
 
+            long parseStart = System.currentTimeMillis();
             HttpResponse<String> response;
             // 1- send m3u8 request
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
             // 2- parse all ts urls by response
             List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body(), m3u8Url);
+            long parseEnd = System.currentTimeMillis();
+
+            long downloadStart = System.currentTimeMillis();
             // 3- download all ts files
             downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers);
+            long downloadEnd = System.currentTimeMillis();
+
+            long mergeStart = System.currentTimeMillis();
             // 4- merge all ts files
             mergeService.mergeTsToMp4(path, fileName.get(), tsUrls.size());
+            long mergeEnd = System.currentTimeMillis();
 
             long duration = System.currentTimeMillis() - start;
+
+            Map<String, Long> times = new HashMap<>();
+            times.put("Parsing", parseEnd - parseStart);
+            times.put("Downloading", downloadEnd - downloadStart);
+            times.put("Merging", mergeEnd - mergeStart);
+
+            Platform.runLater(() -> phaseTimes.set(times));
 
             // 5- update UI
             timeLabelUpdateStrategy.update(duration);
@@ -128,6 +147,7 @@ public class M3U8ViewModel {
                 () -> {
                     progressBar.set(0.0);
                     timeLabel.set(StringUtils.EMPTY);
+                    phaseTimes.set(null);
                     latch.countDown();
                 });
         latch.await();

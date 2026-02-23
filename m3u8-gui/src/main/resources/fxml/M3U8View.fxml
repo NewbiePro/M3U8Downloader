@@ -10,33 +10,85 @@
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.control.ProgressBar?>
-<VBox alignment="CENTER" spacing="20.0" xmlns:fx="http://javafx.com/fxml"
-      fx:controller="com.tech.newbie.m3u8downloader.gui.controller.M3U8Controller">
-    <padding>
-        <Insets bottom="20.0" left="20.0" right="20.0" top="20.0"/>
-    </padding>
+<?import javafx.scene.chart.PieChart?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
 
-    <!-- Main Title -->
-    <Label fx:id="statusText" text="M3U8 Downloader" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+<!-- Add stylesheets and a custom style class for the root -->
+<VBox fx:id="rootBox" alignment="TOP_CENTER" spacing="15.0" xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.tech.newbie.m3u8downloader.gui.controller.M3U8Controller"
+      stylesheets="@../css/style.css"
+      styleClass="root"
+      style="-fx-border-color: #00d2ff; -fx-border-width: 1px; -fx-background-radius: 8px; -fx-border-radius: 8px;">
 
-    <!-- URL Input Section -->
-    <VBox spacing="10" alignment="CENTER">
-        <TextArea fx:id="inputArea" promptText="Enter URL or paste cURL request" prefRowCount="4" prefWidth="600" wrapText="true"/>
-    </VBox>
-    <TextField fx:id="fileNameField" promptText="File Name" maxWidth="600"/>
-
-    <!-- Time Display Section -->
-    <VBox spacing="10" alignment="CENTER">
-        <Label fx:id="timeLabel" style="-fx-font-size: 14px;"/>
-    </VBox>
-
-    <!-- Progress Bar for downloading progress-->
-    <ProgressBar fx:id="progressBar" progress="0.0" prefWidth="600"/>
-    <!-- Button Section-->
-    <HBox>
-        <Button text="Browse..." onAction="#onSelectPathClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
-        <Button text="Download" onAction="#onDownloadButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
-        <Button text="Play" onAction="#onPlayButtonClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
-        <Button text="Choose Video" onAction="#onChooseVideoClick" style="-fx-padding: 5px 10px; -fx-font-size: 12px;"/>
+    <!-- Custom Title Bar -->
+    <HBox fx:id="titleBar" alignment="CENTER_LEFT" styleClass="title-bar" prefHeight="35.0">
+        <padding>
+            <Insets left="15.0" right="10.0"/>
+        </padding>
+        <Label text="M3U8 Downloader Pro" styleClass="title-text"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="—" styleClass="title-btn" onAction="#onMinimizeClick"/>
+        <Button text="✕" styleClass="title-btn, title-btn-close" onAction="#onCloseClick"/>
     </HBox>
+
+    <!-- Main Content Area wrapped in a padding VBox -->
+    <VBox alignment="CENTER" spacing="20.0">
+        <padding>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="10.0"/>
+        </padding>
+
+        <!-- TOP PANEL: Document/URL Download Controls -->
+        <VBox styleClass="dashboard-panel" spacing="15.0" minWidth="600">
+            <padding>
+                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
+            </padding>
+            <Label text="▼ DATA INPUT TERMINAL" styleClass="panel-title"/>
+
+            <!-- URL Input Section -->
+            <VBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Stream Source URL / cURL" styleClass="label"/>
+                <!-- Add Drag & Drop hint classes -->
+                <TextArea fx:id="inputArea" promptText="Enter URL, paste cURL request, or Drag &amp; Drop here..." prefRowCount="3" wrapText="true" styleClass="text-area"/>
+            </VBox>
+
+            <VBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Local Save Designation" styleClass="label"/>
+                <TextField fx:id="fileNameField" promptText="video_name (without .mp4)" styleClass="text-field"/>
+            </VBox>
+
+            <!-- Button Section-->
+            <HBox spacing="15" alignment="CENTER">
+                <Button text="[ SELECT MOUNT ]" onAction="#onSelectPathClick" styleClass="button" minWidth="-Infinity"/>
+                <Button text="[ INITIATE TRANSFER ]" onAction="#onDownloadButtonClick" styleClass="button" style="-fx-font-weight: bold;" minWidth="-Infinity"/>
+                <Button text="[ EXECUTE LOCAL ]" onAction="#onPlayButtonClick" styleClass="button" minWidth="-Infinity"/>
+                <Button text="[ ACCESS ARCHIVE ]" onAction="#onChooseVideoClick" styleClass="button" minWidth="-Infinity"/>
+            </HBox>
+        </VBox>
+
+        <!-- BOTTOM PANEL: Data Visualizations -->
+        <VBox styleClass="dashboard-panel" spacing="15.0" minWidth="600">
+            <padding>
+                <Insets bottom="15.0" left="15.0" right="15.0" top="15.0"/>
+            </padding>
+            <Label text="▼ TELEMETRY &amp; VISUALIZATIONS" styleClass="panel-title"/>
+
+            <!-- Time and Status Display Section -->
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Label text="System Status:" styleClass="label" style="-fx-font-weight: bold;"/>
+                <Label fx:id="statusText" text="Awaiting Instructions" styleClass="label" minWidth="120"/>
+                
+                <!-- Progress Bar for downloading progress stretches in the middle -->
+                <ProgressBar fx:id="progressBar" progress="0.0" prefHeight="15" maxWidth="1.7976931348623157E308" HBox.hgrow="ALWAYS" styleClass="progress-bar"/>
+                
+                <Label fx:id="timeLabel" styleClass="label" minWidth="120" alignment="CENTER_RIGHT"/>
+            </HBox>
+
+            <!-- PieChart for time distribution -->
+            <VBox alignment="CENTER" prefHeight="200">
+                 <PieChart fx:id="timePieChart" visible="false" prefHeight="200" title="Phase Distribution" styleClass="chart-pie"/>
+            </VBox>
+        </VBox>
+
+    </VBox>
 </VBox>
