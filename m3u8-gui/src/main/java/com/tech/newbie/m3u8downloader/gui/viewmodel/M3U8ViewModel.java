@@ -5,7 +5,7 @@ import com.tech.newbie.m3u8downloader.core.model.Video;
 import com.tech.newbie.m3u8downloader.core.service.M3U8ParserService;
 import com.tech.newbie.m3u8downloader.gui.service.MediaService;
 import com.tech.newbie.m3u8downloader.core.service.MergeService;
-import com.tech.newbie.m3u8downloader.core.service.strategy.download.DownloadService;
+import com.tech.newbie.m3u8downloader.core.service.strategy.download.VirtualThreadDownloadService;
 import com.tech.newbie.m3u8downloader.core.service.strategy.download.VirtualThreadDownloadService;
 import com.tech.newbie.m3u8downloader.gui.strategy.ui.AlertUpdateStrategy;
 import com.tech.newbie.m3u8downloader.gui.strategy.ui.ProgressBarUpdateStrategy;
@@ -53,7 +53,7 @@ public class M3U8ViewModel {
     // dependency
     private final M3U8ParserService m3U8ParserService = new M3U8ParserService(statusUpdateStrategy);
 
-    private final DownloadService downloadService = new VirtualThreadDownloadService(statusUpdateStrategy,
+    private final VirtualThreadDownloadService downloadService = new VirtualThreadDownloadService(statusUpdateStrategy,
             progressBarUpdateStrategy);
 
     private final MergeService mergeService = new MergeService(statusUpdateStrategy, alertUpdateStrategy);

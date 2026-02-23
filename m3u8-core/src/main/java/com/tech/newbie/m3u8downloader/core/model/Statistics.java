@@ -1,6 +1,5 @@
 package com.tech.newbie.m3u8downloader.core.model;
 
-import com.tech.newbie.m3u8downloader.core.common.enums.DownloadType;
 import com.tech.newbie.m3u8downloader.core.common.utils.TimeUtil;
 import lombok.Getter;
 import lombok.Setter;
@@ -10,8 +9,6 @@ import lombok.ToString;
 @Setter
 @ToString
 public class Statistics {
-    private DownloadType downloadType;
-
     private long totalTime; // 总耗时
     private long downloadTime; // 下载耗时
     private long writeTime; // 写入耗时
@@ -22,14 +19,12 @@ public class Statistics {
     private int successCount; // 成功下载数
     private int failedCount; // 失败数
 
-    public Statistics(DownloadType downloadType) {
-        this.downloadType = downloadType;
+    public Statistics() {
     }
 
     public String getFormattedReport() {
         StringBuilder report = new StringBuilder();
         report.append("=== Metrics ===\n");
-        report.append("Download Type: ").append(downloadType.getDisplayName()).append("\n");
         report.append("Total Ts Files: ").append(totalTsFiles).append("\n");
         report.append("Success Counts: ").append(successCount).append("\n");
         report.append("Failed Counts: ").append(failedCount).append("\n");

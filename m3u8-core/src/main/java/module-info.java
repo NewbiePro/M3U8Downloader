@@ -10,6 +10,5 @@ module com.tech.newbie.m3u8downloader.core {
     exports com.tech.newbie.m3u8downloader.core.service.strategy.download;
     exports com.tech.newbie.m3u8downloader.core.common.utils;
     exports com.tech.newbie.m3u8downloader.core.common.callback;
-    exports com.tech.newbie.m3u8downloader.core.common.enums;
     exports com.tech.newbie.m3u8downloader.core.config;
 }
