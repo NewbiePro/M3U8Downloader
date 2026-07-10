@@ -1,5 +1,6 @@
 package com.tech.newbie.m3u8downloader.core.common.utils;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
@@ -7,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+@Slf4j
 
 public class CurlParser {
 
@@ -36,6 +39,8 @@ public class CurlParser {
             return null;
         }
 
+        log.info("Parsing cURL command (length: {} chars)", curlCommand.length());
+
         // Clean up escaped newlines first (common when copying multiline bash curls)
         String command = curlCommand
                 .replaceAll("\\\\\\n", " ")
@@ -43,13 +48,17 @@ public class CurlParser {
                 .trim();
 
         if (!command.startsWith("curl ")) {
+            log.warn("Not a curl command, starts with: {}", command.substring(0, Math.min(50, command.length())));
             return null; // Not a curl command
         }
 
         List<String> tokens = tokenize(command);
-        if (tokens.isEmpty())
+        if (tokens.isEmpty()) {
+            log.warn("No tokens extracted from curl command");
             return null;
+        }
 
+        log.debug("Extracted {} tokens from curl command", tokens.size());
         CurlRequest request = new CurlRequest();
 
         for (int i = 1; i < tokens.size(); i++) {
@@ -82,6 +91,18 @@ public class CurlParser {
                     break;
                 }
             }
+        }
+
+        // Log parsing results
+        log.info("✓ Parsed cURL - URL: {}", request.getUrl());
+        log.info("✓ Extracted {} headers:", request.getHeaders().size());
+        request.getHeaders().forEach((key, value) -> {
+            String displayValue = value.length() > 50 ? value.substring(0, 50) + "..." : value;
+            log.info("  - {}: {}", key, displayValue);
+        });
+
+        if (request.getHeaders().isEmpty()) {
+            log.warn("⚠ No headers extracted! This may cause anti-bot detection!");
         }
 
         return request;
