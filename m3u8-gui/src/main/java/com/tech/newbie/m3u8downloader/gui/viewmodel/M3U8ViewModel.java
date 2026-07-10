@@ -179,8 +179,6 @@ public class M3U8ViewModel {
                             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
                             .header("Accept", "application/vnd.apple.mpegurl, application/x-mpegurl, */*")
                             .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
-                            .header("Accept-Encoding", "gzip, deflate, br")
-                            .header("Connection", "keep-alive")
                             .header("Referer", baseUrl + "/")
                             .header("Origin", baseUrl)
                             .header("Sec-Fetch-Dest", "empty")
