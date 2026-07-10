@@ -1,11 +1,11 @@
 package com.tech.newbie.m3u8downloader.gui.viewmodel;
 
+import com.tech.newbie.m3u8downloader.core.common.utils.HttpClientFactory;
 import com.tech.newbie.m3u8downloader.core.common.utils.TimeUtil;
 import com.tech.newbie.m3u8downloader.core.model.Video;
 import com.tech.newbie.m3u8downloader.core.service.M3U8ParserService;
 import com.tech.newbie.m3u8downloader.gui.service.MediaService;
 import com.tech.newbie.m3u8downloader.core.service.MergeService;
-import com.tech.newbie.m3u8downloader.core.service.strategy.download.VirtualThreadDownloadService;
 import com.tech.newbie.m3u8downloader.core.service.strategy.download.VirtualThreadDownloadService;
 import com.tech.newbie.m3u8downloader.gui.strategy.ui.AlertUpdateStrategy;
 import com.tech.newbie.m3u8downloader.gui.strategy.ui.ProgressBarUpdateStrategy;
@@ -94,7 +94,7 @@ public class M3U8ViewModel {
             // clear previous output
             resetUIState();
 
-            HttpClient client = HttpClient.newHttpClient();
+            HttpClient client = HttpClientFactory.createSimpleInsecureHttpClient();
             // 0- build request
             HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(m3u8Url));
             if (headers != null && !headers.isEmpty()) {
