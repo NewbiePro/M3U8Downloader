@@ -36,7 +36,8 @@ public class VirtualThreadDownloadService {
     private final Statistics statistics;
 
     private final AtomicInteger counter = new AtomicInteger(1);
-    private static final Semaphore LIMITER = new Semaphore(32);
+    // Reduced from 32 to 8 to avoid rate limiting
+    private static final Semaphore LIMITER = new Semaphore(8);
     private static final ExecutorService VIRTUAL_THREAD_POOL = Executors.newVirtualThreadPerTaskExecutor();
 
     public VirtualThreadDownloadService(UpdateCallback<String> statusUpdateStrategy,
@@ -154,12 +155,27 @@ public class VirtualThreadDownloadService {
                 break;
             } catch (IOException e) {
                 attempt++;
-                log.warn("Attempt {}/{} failed: {}", attempt, maxRetries, e.getMessage());
+                log.warn("Attempt {}/{} failed for ts {}/{}: {}", attempt, maxRetries, index, size, e.getMessage());
                 if (attempt >= maxRetries) {
                     log.error("Max retries reached for ts segment: [{}]", tsUrl);
                     throw new RuntimeException(String.format("Attempt %d failed to fetch ts: %s", attempt, tsUrl));
                 }
                 Files.deleteIfExists(outputFile.toPath());
+
+                // Exponential backoff with jitter to avoid rate limiting
+                // Wait time: baseDelay * (2 ^ attempt) + random jitter
+                int baseDelayMs = 1000; // 1 second
+                int exponentialDelay = baseDelayMs * (int) Math.pow(2, attempt - 1);
+                int jitter = (int) (Math.random() * baseDelayMs);
+                int totalDelay = exponentialDelay + jitter;
+
+                log.info("Waiting {}ms before retry {} for ts {}/{}", totalDelay, attempt + 1, index, size);
+                try {
+                    Thread.sleep(totalDelay);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("Download interrupted", ie);
+                }
             } finally {
                 LIMITER.release();
             }

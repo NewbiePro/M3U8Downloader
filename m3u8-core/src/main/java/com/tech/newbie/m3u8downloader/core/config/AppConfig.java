@@ -25,7 +25,8 @@ public class AppConfig {
     }
 
     public int getMaxRetries() {
-        return Integer.parseInt(props.getProperty("download.max-retries", "3"));
+        // Increased from 3 to 5 to handle rate limiting better
+        return Integer.parseInt(props.getProperty("download.max-retries", "5"));
     }
 
     public int getTimeout() {
