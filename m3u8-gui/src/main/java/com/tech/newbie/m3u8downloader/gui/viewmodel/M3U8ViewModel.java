@@ -100,6 +100,20 @@ public class M3U8ViewModel {
             HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(m3u8Url));
             if (headers != null && !headers.isEmpty()) {
                 headers.forEach(builder::header);
+            } else {
+                // Add realistic browser headers if none provided
+                builder.header("User-Agent",
+                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                        .header("Accept", "application/vnd.apple.mpegurl, application/x-mpegurl, */*")
+                        .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
+                        .header("Accept-Encoding", "gzip, deflate, br")
+                        .header("Connection", "keep-alive")
+                        .header("Sec-Fetch-Dest", "empty")
+                        .header("Sec-Fetch-Mode", "cors")
+                        .header("Sec-Fetch-Site", "same-origin")
+                        .header("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
+                        .header("sec-ch-ua-mobile", "?0")
+                        .header("sec-ch-ua-platform", "\"Windows\"");
             }
             HttpRequest request = builder.build();
 
@@ -114,7 +128,19 @@ public class M3U8ViewModel {
             EncryptionKey encryptionKey = m3U8ParserService.getEncryptionKey();
             if (encryptionKey != null && encryptionKey.isEncrypted()) {
                 statusUpdateStrategy.update("Downloading encryption key...");
-                HttpRequest keyRequest = HttpRequest.newBuilder().uri(URI.create(encryptionKey.getUri())).build();
+                HttpRequest.Builder keyBuilder = HttpRequest.newBuilder().uri(URI.create(encryptionKey.getUri()));
+
+                // Use same headers for key download
+                if (headers != null && !headers.isEmpty()) {
+                    headers.forEach(keyBuilder::header);
+                } else {
+                    keyBuilder.header("User-Agent",
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                            .header("Accept", "*/*")
+                            .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7");
+                }
+
+                HttpRequest keyRequest = keyBuilder.build();
                 HttpResponse<byte[]> keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofByteArray());
 
                 if (keyResponse.statusCode() == 200) {
