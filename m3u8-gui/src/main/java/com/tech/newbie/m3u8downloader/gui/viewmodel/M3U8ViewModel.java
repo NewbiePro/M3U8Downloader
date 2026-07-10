@@ -30,6 +30,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -171,36 +172,72 @@ public class M3U8ViewModel {
             // 2.5- Download encryption key if needed
             EncryptionKey encryptionKey = m3U8ParserService.getEncryptionKey();
             if (encryptionKey != null && encryptionKey.isEncrypted()) {
-                statusUpdateStrategy.update("Downloading encryption key...");
-                HttpRequest.Builder keyBuilder = HttpRequest.newBuilder().uri(URI.create(encryptionKey.getUri()));
+                boolean keyLoaded = false;
 
-                // Use same headers for key download
-                if (headers != null && !headers.isEmpty()) {
-                    headers.forEach(keyBuilder::header);
-                    // Add Referer and Origin if missing
-                    if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
-                        keyBuilder.header("Referer", baseUrl + "/");
+                // Try to load key from local file if m3u8 is local
+                if (m3u8Url.startsWith("file://")) {
+                    statusUpdateStrategy.update("Looking for local encryption key...");
+                    File m3u8File = new File(m3u8Url.substring(7));
+                    File m3u8Dir = m3u8File.getParentFile();
+
+                    // Try common key file names
+                    String[] keyFileNames = {"ts.key", "key.key", "enc.key", "video.key", "encryption.key"};
+                    for (String keyFileName : keyFileNames) {
+                        File keyFile = new File(m3u8Dir, keyFileName);
+                        if (keyFile.exists()) {
+                            try {
+                                byte[] keyBytes = Files.readAllBytes(keyFile.toPath());
+                                encryptionKey.setKeyBytes(keyBytes);
+                                log.info("✓ Loaded encryption key from local file: {} ({} bytes)",
+                                        keyFile.getName(), keyBytes.length);
+                                statusUpdateStrategy.update("Loaded local encryption key: " + keyFile.getName());
+                                keyLoaded = true;
+                                break;
+                            } catch (Exception e) {
+                                log.warn("Failed to read key file {}: {}", keyFile.getName(), e.getMessage());
+                            }
+                        }
                     }
-                    if (!headers.containsKey("Origin") && !headers.containsKey("origin")) {
-                        keyBuilder.header("Origin", baseUrl);
+
+                    if (!keyLoaded) {
+                        log.warn("⚠ No local key file found. Tried: {}", String.join(", ", keyFileNames));
+                        log.warn("⚠ Please place key file in same directory as m3u8 file: {}", m3u8Dir.getAbsolutePath());
                     }
-                } else {
-                    keyBuilder.header("User-Agent",
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-                            .header("Accept", "*/*")
-                            .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
-                            .header("Referer", baseUrl + "/")
-                            .header("Origin", baseUrl);
                 }
 
-                HttpRequest keyRequest = keyBuilder.build();
-                HttpResponse<byte[]> keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofByteArray());
+                // If key not loaded from local file, try downloading from network
+                if (!keyLoaded) {
+                    statusUpdateStrategy.update("Downloading encryption key...");
+                    HttpRequest.Builder keyBuilder = HttpRequest.newBuilder().uri(URI.create(encryptionKey.getUri()));
 
-                if (keyResponse.statusCode() == 200) {
-                    encryptionKey.setKeyBytes(keyResponse.body());
-                    log.info("Encryption key downloaded: {} bytes", keyResponse.body().length);
-                } else {
-                    throw new RuntimeException("Failed to download encryption key: HTTP " + keyResponse.statusCode());
+                    // Use same headers for key download
+                    if (headers != null && !headers.isEmpty()) {
+                        headers.forEach(keyBuilder::header);
+                        // Add Referer and Origin if missing
+                        if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
+                            keyBuilder.header("Referer", baseUrl + "/");
+                        }
+                        if (!headers.containsKey("Origin") && !headers.containsKey("origin")) {
+                            keyBuilder.header("Origin", baseUrl);
+                        }
+                    } else {
+                        keyBuilder.header("User-Agent",
+                                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                                .header("Accept", "*/*")
+                                .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
+                                .header("Referer", baseUrl + "/")
+                                .header("Origin", baseUrl);
+                    }
+
+                    HttpRequest keyRequest = keyBuilder.build();
+                    HttpResponse<byte[]> keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofByteArray());
+
+                    if (keyResponse.statusCode() == 200) {
+                        encryptionKey.setKeyBytes(keyResponse.body());
+                        log.info("Encryption key downloaded: {} bytes", keyResponse.body().length);
+                    } else {
+                        throw new RuntimeException("Failed to download encryption key: HTTP " + keyResponse.statusCode());
+                    }
                 }
             }
 
