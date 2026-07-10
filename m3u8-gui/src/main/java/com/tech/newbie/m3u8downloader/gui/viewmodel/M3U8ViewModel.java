@@ -219,19 +219,40 @@ public class M3U8ViewModel {
                     }
                     File m3u8Dir = m3u8File.getParentFile();
 
-                    // First, try to use the key file name from m3u8 (if it's a relative path)
+                    // First, try to use the key file name from m3u8 (if it's a relative path or file:// URL)
                     String keyUri = encryptionKey.getUri();
                     if (keyUri != null && !keyUri.startsWith("http")) {
-                        // It's a relative path or filename
-                        // Remove query parameters (e.g., "ts.key?" -> "ts.key")
+                        // It's a relative path, filename, or file:// URL
                         String keyFileName = keyUri;
+
+                        // Handle file:// URLs (e.g., "file:/D:/path/ts.key" or "file:///D:/path/ts.key")
+                        if (keyFileName.startsWith("file:")) {
+                            try {
+                                // Try to parse as URI
+                                File keyFileFromUri = new File(new URI(keyFileName));
+                                keyFileName = keyFileFromUri.getName();
+                                log.info("Extracted filename from file:// URI: {} -> {}", keyUri, keyFileName);
+                            } catch (Exception e) {
+                                // Fallback: strip "file:" prefix and extract filename
+                                keyFileName = keyFileName.replaceFirst("^file:/*", "");
+                                if (keyFileName.contains("/") || keyFileName.contains("\\\\")) {
+                                    keyFileName = new File(keyFileName).getName();
+                                }
+                                log.info("Extracted filename from malformed file URI: {} -> {}", keyUri, keyFileName);
+                            }
+                        }
+
+                        // Remove query parameters (e.g., "ts.key?" -> "ts.key")
                         int queryIndex = keyFileName.indexOf('?');
                         if (queryIndex > 0) {
                             keyFileName = keyFileName.substring(0, queryIndex);
-                            log.info("Removed query parameters from key URI: {} -> {}", keyUri, keyFileName);
+                            log.info("Removed query parameters from key filename: {} -> {}",
+                                    keyUri, keyFileName);
                         }
 
                         File keyFile = new File(m3u8Dir, keyFileName);
+                        log.info("Looking for key file at: {}", keyFile.getAbsolutePath());
+
                         if (keyFile.exists()) {
                             try {
                                 byte[] keyBytes = Files.readAllBytes(keyFile.toPath());
@@ -244,7 +265,9 @@ public class M3U8ViewModel {
                                 log.warn("Failed to read key file {}: {}", keyFile.getName(), e.getMessage());
                             }
                         } else {
-                            log.warn("Key file specified in m3u8 not found: {}", keyFile.getAbsolutePath());
+                            log.warn("Key file not found: {}", keyFile.getAbsolutePath());
+                            log.warn("Directory contents: {}",
+                                    m3u8Dir.list() != null ? String.join(", ", m3u8Dir.list()) : "none");
                         }
                     }
 
