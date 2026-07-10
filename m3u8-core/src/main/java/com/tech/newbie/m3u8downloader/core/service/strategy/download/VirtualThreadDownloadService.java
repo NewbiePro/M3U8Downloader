@@ -1,8 +1,10 @@
 package com.tech.newbie.m3u8downloader.core.service.strategy.download;
 
 import com.tech.newbie.m3u8downloader.core.config.AppConfig;
+import com.tech.newbie.m3u8downloader.core.model.EncryptionKey;
 import com.tech.newbie.m3u8downloader.core.model.Statistics;
 import com.tech.newbie.m3u8downloader.core.common.callback.UpdateCallback;
+import com.tech.newbie.m3u8downloader.core.common.utils.DecryptionUtil;
 import com.tech.newbie.m3u8downloader.core.common.utils.HttpClientFactory;
 import lombok.extern.slf4j.Slf4j;
 
@@ -46,15 +48,16 @@ public class VirtualThreadDownloadService {
         this.httpClient = HttpClientFactory.createInsecureHttpClient();
     }
 
-    public void downloadTsFiles(List<String> tsUrls, String outputDir, String fileName, Map<String, String> headers) {
+    public void downloadTsFiles(List<String> tsUrls, String outputDir, String fileName, Map<String, String> headers, EncryptionKey encryptionKey) {
         long startTime = System.currentTimeMillis();
         statistics.setTotalTsFiles(tsUrls.size());
         statistics.setSuccessCount(0);
         statistics.setFailedCount(0);
         statistics.setTotalBytes(0);
 
-        log.info("Start using VIRTUAL_THREAD to download [{}] tsFiles", tsUrls.size());
-        statusUpdateStrategy.update("Downloading....");
+        boolean isEncrypted = encryptionKey != null && encryptionKey.isEncrypted();
+        log.info("Start using VIRTUAL_THREAD to download [{}] tsFiles (encrypted: {})", tsUrls.size(), isEncrypted);
+        statusUpdateStrategy.update(isEncrypted ? "Downloading and decrypting...." : "Downloading....");
         counter.set(1);
 
         try {
@@ -62,7 +65,7 @@ public class VirtualThreadDownloadService {
             List<CompletableFuture<Void>> futures = tsUrls.stream().map(url -> CompletableFuture.runAsync(
                     () -> {
                         try {
-                            downloadTsFile(url, outputDir, fileName, tsUrls.size(), headers);
+                            downloadTsFile(url, outputDir, fileName, tsUrls.size(), headers, encryptionKey);
                         } catch (Exception e) {
                             log.error("Error downloading with virtual thread: {}", e.getMessage(), e);
                             throw new RuntimeException("Failed to download: " + url, e);
@@ -89,7 +92,7 @@ public class VirtualThreadDownloadService {
         }
     }
 
-    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Map<String, String> headers)
+    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Map<String, String> headers, EncryptionKey encryptionKey)
             throws IOException, InterruptedException {
         int index = counter.getAndIncrement();
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
@@ -112,20 +115,25 @@ public class VirtualThreadDownloadService {
         while (true) {
             LIMITER.acquire();
             try {
-                // use InputStream mode, which saves memory
-                HttpResponse<InputStream> response = httpClient.send(request,
-                        HttpResponse.BodyHandlers.ofInputStream());
+                // use byte array mode for decryption
+                HttpResponse<byte[]> response = httpClient.send(request,
+                        HttpResponse.BodyHandlers.ofByteArray());
                 int statusCode = response.statusCode();
                 if (statusCode != 200) {
-                    if (response.body() != null)
-                        response.body().close();
                     log.error("invalid response for ts segment: [{}] status: [{}]", tsUrl, response.statusCode());
                     throw new IOException("invalid response");
                 }
-                // ts file output to directory
-                try (InputStream is = response.body()) {
-                    Files.copy(is, outputFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+
+                byte[] data = response.body();
+
+                // Decrypt if needed
+                if (encryptionKey != null && encryptionKey.isEncrypted()) {
+                    data = DecryptionUtil.decryptAES128(data, encryptionKey, index);
+                    log.debug("Decrypted ts file {}/{}", index, size);
                 }
+
+                // Write to file
+                Files.write(outputFile.toPath(), data);
                 break;
             } catch (IOException e) {
                 attempt++;

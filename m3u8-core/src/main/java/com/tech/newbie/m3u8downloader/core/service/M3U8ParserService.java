@@ -1,10 +1,13 @@
 package com.tech.newbie.m3u8downloader.core.service;
 
 import com.tech.newbie.m3u8downloader.core.common.callback.UpdateCallback;
+import com.tech.newbie.m3u8downloader.core.model.EncryptionKey;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static com.tech.newbie.m3u8downloader.core.common.constant.Constant.M3U8_HEADER;
 
@@ -12,9 +15,14 @@ import static com.tech.newbie.m3u8downloader.core.common.constant.Constant.M3U8_
 public class M3U8ParserService {
 
     private final UpdateCallback<String> strategy;
+    private EncryptionKey encryptionKey;
 
     public M3U8ParserService(UpdateCallback<String> strategy) {
         this.strategy = strategy;
+    }
+
+    public EncryptionKey getEncryptionKey() {
+        return encryptionKey;
     }
 
     public List<String> parseM3U8Content(String content, String requestUrl) {
@@ -23,13 +31,67 @@ public class M3U8ParserService {
             strategy.update("invalid m3u8 url");
             return Collections.emptyList();
         }
+
+        // Parse encryption key if present
+        parseEncryptionKey(content, requestUrl);
+
         String urlPath = requestUrl.substring(0, requestUrl.lastIndexOf("/") + 1);
         List<String> tsFiles = content.lines()
                 .filter(line -> !line.isBlank() && !line.startsWith("#") && !line.startsWith("/"))
-                .map(line -> line.startsWith("https") ? line : urlPath + line)
+                .map(line -> line.startsWith("https") || line.startsWith("http") ? line : urlPath + line)
                 .toList();
+
+        if (encryptionKey != null && encryptionKey.isEncrypted()) {
+            log.info("M3U8 is encrypted with {}, key URI: {}", encryptionKey.getMethod(), encryptionKey.getUri());
+            strategy.update("Encrypted m3u8 detected - " + encryptionKey.getMethod());
+        }
+
         strategy.update("There are " + tsFiles.size() + " files");
         return tsFiles;
+    }
+
+    private void parseEncryptionKey(String content, String baseUrl) {
+        // Parse #EXT-X-KEY tag
+        // Example: #EXT-X-KEY:METHOD=AES-128,URI="https://example.com/key.key",IV=0x12345678901234567890123456789012
+        Pattern keyPattern = Pattern.compile("#EXT-X-KEY:(.+)");
+        Matcher matcher = keyPattern.matcher(content);
+
+        if (matcher.find()) {
+            String keyLine = matcher.group(1);
+            encryptionKey = new EncryptionKey();
+
+            // Parse METHOD
+            Pattern methodPattern = Pattern.compile("METHOD=([^,]+)");
+            Matcher methodMatcher = methodPattern.matcher(keyLine);
+            if (methodMatcher.find()) {
+                encryptionKey.setMethod(methodMatcher.group(1));
+            }
+
+            // Parse URI
+            Pattern uriPattern = Pattern.compile("URI=\"([^\"]+)\"");
+            Matcher uriMatcher = uriPattern.matcher(keyLine);
+            if (uriMatcher.find()) {
+                String uri = uriMatcher.group(1);
+                // Convert relative URL to absolute URL
+                if (!uri.startsWith("http")) {
+                    String urlPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
+                    uri = urlPath + uri;
+                }
+                encryptionKey.setUri(uri);
+            }
+
+            // Parse IV (optional)
+            Pattern ivPattern = Pattern.compile("IV=(0[xX][0-9a-fA-F]+)");
+            Matcher ivMatcher = ivPattern.matcher(keyLine);
+            if (ivMatcher.find()) {
+                encryptionKey.setIv(ivMatcher.group(1));
+            }
+
+            log.info("Parsed encryption key: METHOD={}, URI={}, IV={}",
+                    encryptionKey.getMethod(), encryptionKey.getUri(), encryptionKey.getIv());
+        } else {
+            log.info("No encryption key found in m3u8");
+        }
     }
 
 }

@@ -2,6 +2,7 @@ package com.tech.newbie.m3u8downloader.gui.viewmodel;
 
 import com.tech.newbie.m3u8downloader.core.common.utils.HttpClientFactory;
 import com.tech.newbie.m3u8downloader.core.common.utils.TimeUtil;
+import com.tech.newbie.m3u8downloader.core.model.EncryptionKey;
 import com.tech.newbie.m3u8downloader.core.model.Video;
 import com.tech.newbie.m3u8downloader.core.service.M3U8ParserService;
 import com.tech.newbie.m3u8downloader.gui.service.MediaService;
@@ -108,11 +109,27 @@ public class M3U8ViewModel {
             response = client.send(request, HttpResponse.BodyHandlers.ofString());
             // 2- parse all ts urls by response
             List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body(), m3u8Url);
+
+            // 2.5- Download encryption key if needed
+            EncryptionKey encryptionKey = m3U8ParserService.getEncryptionKey();
+            if (encryptionKey != null && encryptionKey.isEncrypted()) {
+                statusUpdateStrategy.update("Downloading encryption key...");
+                HttpRequest keyRequest = HttpRequest.newBuilder().uri(URI.create(encryptionKey.getUri())).build();
+                HttpResponse<byte[]> keyResponse = client.send(keyRequest, HttpResponse.BodyHandlers.ofByteArray());
+
+                if (keyResponse.statusCode() == 200) {
+                    encryptionKey.setKeyBytes(keyResponse.body());
+                    log.info("Encryption key downloaded: {} bytes", keyResponse.body().length);
+                } else {
+                    throw new RuntimeException("Failed to download encryption key: HTTP " + keyResponse.statusCode());
+                }
+            }
+
             long parseEnd = System.currentTimeMillis();
 
             long downloadStart = System.currentTimeMillis();
             // 3- download all ts files
-            downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers);
+            downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers, encryptionKey);
             long downloadEnd = System.currentTimeMillis();
 
             long mergeStart = System.currentTimeMillis();

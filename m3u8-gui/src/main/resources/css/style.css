@@ -1,0 +1,143 @@
+.root {
+    -fx-background-color: #060a1f;
+    /* Deep cyber blue */
+    -fx-font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+/* Custom Title Bar */
+.title-bar {
+    -fx-background-color: #0b1536;
+    -fx-border-color: transparent transparent #0cd1ed transparent;
+    -fx-border-width: 0 0 2px 0;
+}
+
+/* Title text */
+.title-text {
+    -fx-text-fill: #0cd1ed;
+    /* Neon cyan */
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+/* Dashboard Panels */
+.dashboard-panel {
+    -fx-background-color: rgba(10, 24, 61, 0.7);
+    /* Transparent deep blue */
+    -fx-border-color: #0cd1ed;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-effect: dropshadow(three-pass-box, rgba(12, 209, 237, 0.2), 10, 0, 0, 0);
+}
+
+.panel-title {
+    -fx-text-fill: #0cd1ed;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 0 10 0;
+}
+
+/* Base text filling */
+.label {
+    -fx-text-fill: #a2b4e8;
+    /* Soft blue-gray for text */
+}
+
+/* Text fields and areas */
+.text-area,
+.text-field {
+    -fx-background-color: #0b1536;
+    -fx-text-fill: #cdd6f4;
+    -fx-border-color: #27457b;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-prompt-text-fill: #5773a8;
+}
+
+.text-area:focused,
+.text-field:focused {
+    -fx-border-color: #0cd1ed;
+    -fx-effect: dropshadow(three-pass-box, #0cd1ed, 5, 0, 0, 0);
+}
+
+.text-area .content {
+    -fx-background-color: #0b1536;
+}
+
+/* Buttons with Tech/Neon vibe */
+.button {
+    -fx-background-color: #0b1536;
+    -fx-text-fill: #0cd1ed;
+    -fx-border-color: #0cd1ed;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-padding: 8px 16px;
+}
+
+.button:hover {
+    -fx-background-color: #0cd1ed;
+    -fx-text-fill: #060a1f;
+    -fx-effect: dropshadow(three-pass-box, #0cd1ed, 15, 0, 0, 0);
+}
+
+.button:pressed {
+    -fx-background-color: #0099cc;
+    -fx-border-color: #0099cc;
+}
+
+/* Title bar control buttons */
+.title-btn {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #5773a8;
+    -fx-padding: 2px 10px;
+    -fx-font-size: 14px;
+}
+
+.title-btn:hover {
+    -fx-background-color: #27457b;
+    -fx-text-fill: #0cd1ed;
+    -fx-effect: none;
+}
+
+.title-btn-close:hover {
+    -fx-background-color: #f38ba8;
+    /* Red close */
+    -fx-text-fill: #1e1e2e;
+    -fx-effect: none;
+}
+
+/* Progress bar cyber style */
+.progress-bar {
+    -fx-background-color: #0b1536;
+    -fx-background-radius: 4px;
+    -fx-border-radius: 4px;
+    -fx-border-color: #27457b;
+}
+
+.progress-bar>.bar {
+    -fx-background-color: linear-gradient(to right, #0cd1ed, #8a2be2);
+    /* Cyan to Purple gradient */
+    -fx-background-radius: 3px;
+    -fx-padding: 2px;
+}
+
+.progress-bar>.track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+/* Pie Chart labels */
+.chart-pie-label {
+    -fx-fill: #a2b4e8;
+}
+
+/* Drag overlay hint (optional if we want to change border color on drag over) */
+.drag-over {
+    -fx-border-color: #a6e3a1;
+    /* Green */
+    -fx-border-width: 2px;
+    -fx-effect: dropshadow(three-pass-box, #a6e3a1, 10, 0, 0, 0);
+}
