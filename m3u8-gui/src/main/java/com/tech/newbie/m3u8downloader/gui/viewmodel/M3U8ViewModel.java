@@ -96,10 +96,25 @@ public class M3U8ViewModel {
             resetUIState();
 
             HttpClient client = HttpClientFactory.createSimpleInsecureHttpClient();
+
+            // Extract base URL for Referer/Origin
+            java.net.URI uri = java.net.URI.create(m3u8Url);
+            String baseUrl = uri.getScheme() + "://" + uri.getAuthority();
+
             // 0- build request
             HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(m3u8Url));
             if (headers != null && !headers.isEmpty()) {
                 headers.forEach(builder::header);
+
+                // Add Referer and Origin if missing (critical for anti-hotlinking)
+                if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
+                    builder.header("Referer", baseUrl + "/");
+                    log.info("Added missing Referer: {}", baseUrl + "/");
+                }
+                if (!headers.containsKey("Origin") && !headers.containsKey("origin")) {
+                    builder.header("Origin", baseUrl);
+                    log.info("Added missing Origin: {}", baseUrl);
+                }
             } else {
                 // Add realistic browser headers if none provided
                 builder.header("User-Agent",
@@ -108,6 +123,8 @@ public class M3U8ViewModel {
                         .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
                         .header("Accept-Encoding", "gzip, deflate, br")
                         .header("Connection", "keep-alive")
+                        .header("Referer", baseUrl + "/")
+                        .header("Origin", baseUrl)
                         .header("Sec-Fetch-Dest", "empty")
                         .header("Sec-Fetch-Mode", "cors")
                         .header("Sec-Fetch-Site", "same-origin")
@@ -133,11 +150,20 @@ public class M3U8ViewModel {
                 // Use same headers for key download
                 if (headers != null && !headers.isEmpty()) {
                     headers.forEach(keyBuilder::header);
+                    // Add Referer and Origin if missing
+                    if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
+                        keyBuilder.header("Referer", baseUrl + "/");
+                    }
+                    if (!headers.containsKey("Origin") && !headers.containsKey("origin")) {
+                        keyBuilder.header("Origin", baseUrl);
+                    }
                 } else {
                     keyBuilder.header("User-Agent",
                             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
                             .header("Accept", "*/*")
-                            .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7");
+                            .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .header("Referer", baseUrl + "/")
+                            .header("Origin", baseUrl);
                 }
 
                 HttpRequest keyRequest = keyBuilder.build();
@@ -154,8 +180,8 @@ public class M3U8ViewModel {
             long parseEnd = System.currentTimeMillis();
 
             long downloadStart = System.currentTimeMillis();
-            // 3- download all ts files
-            downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers, encryptionKey);
+            // 3- download all ts files (pass baseUrl for Referer/Origin)
+            downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers, encryptionKey, baseUrl);
             long downloadEnd = System.currentTimeMillis();
 
             long mergeStart = System.currentTimeMillis();

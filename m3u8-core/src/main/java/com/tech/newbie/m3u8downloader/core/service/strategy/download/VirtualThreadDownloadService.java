@@ -48,7 +48,7 @@ public class VirtualThreadDownloadService {
         this.httpClient = HttpClientFactory.createInsecureHttpClient();
     }
 
-    public void downloadTsFiles(List<String> tsUrls, String outputDir, String fileName, Map<String, String> headers, EncryptionKey encryptionKey) {
+    public void downloadTsFiles(List<String> tsUrls, String outputDir, String fileName, Map<String, String> headers, EncryptionKey encryptionKey, String baseUrl) {
         long startTime = System.currentTimeMillis();
         statistics.setTotalTsFiles(tsUrls.size());
         statistics.setSuccessCount(0);
@@ -65,7 +65,7 @@ public class VirtualThreadDownloadService {
             List<CompletableFuture<Void>> futures = tsUrls.stream().map(url -> CompletableFuture.runAsync(
                     () -> {
                         try {
-                            downloadTsFile(url, outputDir, fileName, tsUrls.size(), headers, encryptionKey);
+                            downloadTsFile(url, outputDir, fileName, tsUrls.size(), headers, encryptionKey, baseUrl);
                         } catch (Exception e) {
                             log.error("Error downloading with virtual thread: {}", e.getMessage(), e);
                             throw new RuntimeException("Failed to download: " + url, e);
@@ -92,7 +92,7 @@ public class VirtualThreadDownloadService {
         }
     }
 
-    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Map<String, String> headers, EncryptionKey encryptionKey)
+    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Map<String, String> headers, EncryptionKey encryptionKey, String baseUrl)
             throws IOException, InterruptedException {
         int index = counter.getAndIncrement();
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
@@ -102,6 +102,13 @@ public class VirtualThreadDownloadService {
 
         if (headers != null && !headers.isEmpty()) {
             headers.forEach(builder::header);
+            // Add Referer and Origin if missing (critical for anti-hotlinking)
+            if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
+                builder.header("Referer", baseUrl + "/");
+            }
+            if (!headers.containsKey("Origin") && !headers.containsKey("origin")) {
+                builder.header("Origin", baseUrl);
+            }
         } else {
             // Add more realistic browser headers to bypass anti-bot protection
             builder.header("User-Agent",
@@ -110,6 +117,8 @@ public class VirtualThreadDownloadService {
                     .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
                     .header("Accept-Encoding", "gzip, deflate, br")
                     .header("Connection", "keep-alive")
+                    .header("Referer", baseUrl + "/")
+                    .header("Origin", baseUrl)
                     .header("Sec-Fetch-Dest", "empty")
                     .header("Sec-Fetch-Mode", "cors")
                     .header("Sec-Fetch-Site", "same-origin")
