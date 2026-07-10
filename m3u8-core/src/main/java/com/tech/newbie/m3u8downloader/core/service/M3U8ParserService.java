@@ -33,7 +33,23 @@ public class M3U8ParserService {
         }
 
         log.info("Parsing m3u8 content, length: {} bytes", content.length());
-        log.debug("M3U8 content preview:\n{}", content.substring(0, Math.min(500, content.length())));
+
+        // Save m3u8 content to file for debugging
+        try {
+            java.io.File debugFile = new java.io.File(System.getProperty("user.home"), "m3u8_debug.txt");
+            java.nio.file.Files.writeString(debugFile.toPath(), content);
+            log.info("M3U8 content saved to: {}", debugFile.getAbsolutePath());
+        } catch (Exception e) {
+            log.warn("Failed to save m3u8 debug file: {}", e.getMessage());
+        }
+
+        // Log first 30 lines for inspection
+        String[] lines = content.split("\n");
+        StringBuilder preview = new StringBuilder();
+        for (int i = 0; i < Math.min(30, lines.length); i++) {
+            preview.append(String.format("Line %2d: %s\n", i+1, lines[i]));
+        }
+        log.info("M3U8 content first 30 lines:\n{}", preview);
 
         // Parse encryption key if present
         parseEncryptionKey(content, requestUrl);
