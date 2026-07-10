@@ -138,20 +138,32 @@ public class M3U8ParserService {
 
                     // Convert relative URL to absolute URL
                     if (!uri.startsWith("http")) {
-                        // Extract base URL (protocol + domain + path)
-                        if (uri.startsWith("/")) {
-                            // Absolute path: /videos/xxx/ts.key
-                            // Extract protocol and domain from baseUrl
-                            java.net.URI baseUri = java.net.URI.create(baseUrl);
-                            uri = baseUri.getScheme() + "://" + baseUri.getAuthority() + uri;
+                        // Check if baseUrl is a file:// URL (local m3u8)
+                        if (baseUrl.startsWith("file://")) {
+                            // For local m3u8 files with relative key URIs, we cannot convert to network URL
+                            // Keep the relative URI as-is, it will be loaded from local file later
+                            log.warn("⚠ Local m3u8 with relative key URI: {} - will try to load from local file", uri);
+                            encryptionKey.setUri(uri);  // Keep relative path
                         } else {
-                            // Relative path: ts.key
-                            String urlPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
-                            uri = urlPath + uri;
+                            // Extract base URL (protocol + domain + path)
+                            if (uri.startsWith("/")) {
+                                // Absolute path: /videos/xxx/ts.key
+                                // Extract protocol and domain from baseUrl
+                                java.net.URI baseUri = java.net.URI.create(baseUrl);
+                                uri = baseUri.getScheme() + "://" + baseUri.getAuthority() + uri;
+                            } else {
+                                // Relative path: ts.key
+                                String urlPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
+                                uri = urlPath + uri;
+                            }
+                            encryptionKey.setUri(uri);
+                            log.info("Resolved absolute URI: {}", encryptionKey.getUri());
                         }
+                    } else {
+                        // Already absolute http/https URL
+                        encryptionKey.setUri(uri);
+                        log.info("Using absolute URI: {}", encryptionKey.getUri());
                     }
-                    encryptionKey.setUri(uri);
-                    log.info("Resolved absolute URI: {}", encryptionKey.getUri());
                 } else {
                     log.warn("Failed to parse URI from line: {}", keyLine);
                 }

@@ -219,35 +219,68 @@ public class M3U8ViewModel {
                     }
                     File m3u8Dir = m3u8File.getParentFile();
 
-                    // Try common key file names
-                    String[] keyFileNames = {"ts.key", "key.key", "enc.key", "video.key", "encryption.key"};
-                    for (String keyFileName : keyFileNames) {
-                        File keyFile = new File(m3u8Dir, keyFileName);
+                    // First, try to use the key file name from m3u8 (if it's a relative path)
+                    String keyUri = encryptionKey.getUri();
+                    if (keyUri != null && !keyUri.startsWith("http")) {
+                        // It's a relative path or filename
+                        File keyFile = new File(m3u8Dir, keyUri);
                         if (keyFile.exists()) {
                             try {
                                 byte[] keyBytes = Files.readAllBytes(keyFile.toPath());
                                 encryptionKey.setKeyBytes(keyBytes);
-                                log.info("✓ Loaded encryption key from local file: {} ({} bytes)",
+                                log.info("✓ Loaded encryption key from m3u8 specified file: {} ({} bytes)",
                                         keyFile.getName(), keyBytes.length);
                                 statusUpdateStrategy.update("Loaded local encryption key: " + keyFile.getName());
                                 keyLoaded = true;
-                                break;
                             } catch (Exception e) {
                                 log.warn("Failed to read key file {}: {}", keyFile.getName(), e.getMessage());
+                            }
+                        } else {
+                            log.warn("Key file specified in m3u8 not found: {}", keyFile.getAbsolutePath());
+                        }
+                    }
+
+                    // If still not loaded, try common key file names
+                    if (!keyLoaded) {
+                        String[] keyFileNames = {"ts.key", "key.key", "enc.key", "video.key", "encryption.key"};
+                        for (String keyFileName : keyFileNames) {
+                            File keyFile = new File(m3u8Dir, keyFileName);
+                            if (keyFile.exists()) {
+                                try {
+                                    byte[] keyBytes = Files.readAllBytes(keyFile.toPath());
+                                    encryptionKey.setKeyBytes(keyBytes);
+                                    log.info("✓ Loaded encryption key from local file: {} ({} bytes)",
+                                            keyFile.getName(), keyBytes.length);
+                                    statusUpdateStrategy.update("Loaded local encryption key: " + keyFile.getName());
+                                    keyLoaded = true;
+                                    break;
+                                } catch (Exception e) {
+                                    log.warn("Failed to read key file {}: {}", keyFile.getName(), e.getMessage());
+                                }
                             }
                         }
                     }
 
                     if (!keyLoaded) {
-                        log.warn("⚠ No local key file found. Tried: {}", String.join(", ", keyFileNames));
+                        log.warn("⚠ No local key file found. Tried: {}", String.join(", ",
+                                new String[]{"ts.key", "key.key", "enc.key", "video.key", "encryption.key"}));
                         log.warn("⚠ Please place key file in same directory as m3u8 file: {}", m3u8Dir.getAbsolutePath());
                     }
                 }
 
                 // If key not loaded from local file, try downloading from network
                 if (!keyLoaded) {
+                    String keyUri = encryptionKey.getUri();
+                    // Check if key URI is a valid network URL
+                    if (keyUri == null || (!keyUri.startsWith("http://") && !keyUri.startsWith("https://"))) {
+                        String errorMsg = String.format("無法載入加密金鑰。本地文件：%s 不存在，且無有效的網絡 URL。",
+                                keyUri != null ? keyUri : "null");
+                        log.error(errorMsg);
+                        throw new RuntimeException(errorMsg);
+                    }
+
                     statusUpdateStrategy.update("Downloading encryption key...");
-                    HttpRequest.Builder keyBuilder = HttpRequest.newBuilder().uri(URI.create(encryptionKey.getUri()));
+                    HttpRequest.Builder keyBuilder = HttpRequest.newBuilder().uri(URI.create(keyUri));
 
                     // Use same headers for key download
                     if (headers != null && !headers.isEmpty()) {
