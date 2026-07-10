@@ -95,9 +95,23 @@ public class M3U8ViewModel {
             } else if (rawInput.startsWith("file://") || new java.io.File(rawInput).exists()) {
                 // Local file path
                 log.info("Detected local file path: {}", rawInput);
-                String filePath = rawInput.startsWith("file://") ? rawInput.substring(7) : rawInput;
-                m3u8Content = java.nio.file.Files.readString(java.nio.file.Path.of(filePath));
-                m3u8Url = "file://" + new java.io.File(filePath).getAbsolutePath();
+                File m3u8File;
+                if (rawInput.startsWith("file://")) {
+                    // Convert file:// URI to File
+                    try {
+                        m3u8File = new File(new URI(rawInput));
+                    } catch (Exception e) {
+                        // Fallback: strip file:// and try as path
+                        m3u8File = new File(rawInput.substring(7));
+                    }
+                } else {
+                    m3u8File = new File(rawInput);
+                }
+
+                m3u8Content = Files.readString(m3u8File.toPath());
+                // Use toURI() to properly convert Windows paths (e.g., D:\path -> file:///D:/path)
+                m3u8Url = m3u8File.toURI().toString();
+                log.info("Converted local file path to URI: {}", m3u8Url);
                 statusUpdateStrategy.update("Reading local m3u8 file...");
             } else if (rawInput.startsWith("curl ")) {
                 com.tech.newbie.m3u8downloader.core.common.utils.CurlParser.CurlRequest curlReq = com.tech.newbie.m3u8downloader.core.common.utils.CurlParser
@@ -124,44 +138,44 @@ public class M3U8ViewModel {
                 baseUrl = "https://example.com"; // Fallback for local files
             }
 
-            // 0- build request
-            HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(m3u8Url));
-            if (headers != null && !headers.isEmpty()) {
-                headers.forEach(builder::header);
-
-                // Add Referer and Origin if missing (critical for anti-hotlinking)
-                if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
-                    builder.header("Referer", baseUrl + "/");
-                    log.info("Added missing Referer: {}", baseUrl + "/");
-                }
-                if (!headers.containsKey("Origin") && !headers.containsKey("origin")) {
-                    builder.header("Origin", baseUrl);
-                    log.info("Added missing Origin: {}", baseUrl);
-                }
-            } else {
-                // Add realistic browser headers if none provided
-                builder.header("User-Agent",
-                        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
-                        .header("Accept", "application/vnd.apple.mpegurl, application/x-mpegurl, */*")
-                        .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
-                        .header("Accept-Encoding", "gzip, deflate, br")
-                        .header("Connection", "keep-alive")
-                        .header("Referer", baseUrl + "/")
-                        .header("Origin", baseUrl)
-                        .header("Sec-Fetch-Dest", "empty")
-                        .header("Sec-Fetch-Mode", "cors")
-                        .header("Sec-Fetch-Site", "same-origin")
-                        .header("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
-                        .header("sec-ch-ua-mobile", "?0")
-                        .header("sec-ch-ua-platform", "\"Windows\"");
-            }
-            HttpRequest request = builder.build();
-
             long parseStart = System.currentTimeMillis();
 
             // 1- Get m3u8 content (from network or local)
             if (m3u8Content == null) {
                 // Download from network
+                // 0- build request
+                HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(m3u8Url));
+                if (headers != null && !headers.isEmpty()) {
+                    headers.forEach(builder::header);
+
+                    // Add Referer and Origin if missing (critical for anti-hotlinking)
+                    if (!headers.containsKey("Referer") && !headers.containsKey("referer")) {
+                        builder.header("Referer", baseUrl + "/");
+                        log.info("Added missing Referer: {}", baseUrl + "/");
+                    }
+                    if (!headers.containsKey("Origin") && !headers.containsKey("origin")) {
+                        builder.header("Origin", baseUrl);
+                        log.info("Added missing Origin: {}", baseUrl);
+                    }
+                } else {
+                    // Add realistic browser headers if none provided
+                    builder.header("User-Agent",
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36")
+                            .header("Accept", "application/vnd.apple.mpegurl, application/x-mpegurl, */*")
+                            .header("Accept-Language", "zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7")
+                            .header("Accept-Encoding", "gzip, deflate, br")
+                            .header("Connection", "keep-alive")
+                            .header("Referer", baseUrl + "/")
+                            .header("Origin", baseUrl)
+                            .header("Sec-Fetch-Dest", "empty")
+                            .header("Sec-Fetch-Mode", "cors")
+                            .header("Sec-Fetch-Site", "same-origin")
+                            .header("sec-ch-ua", "\"Google Chrome\";v=\"131\", \"Chromium\";v=\"131\", \"Not_A Brand\";v=\"24\"")
+                            .header("sec-ch-ua-mobile", "?0")
+                            .header("sec-ch-ua-platform", "\"Windows\"");
+                }
+                HttpRequest request = builder.build();
+
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 m3u8Content = response.body();
             }
@@ -177,7 +191,13 @@ public class M3U8ViewModel {
                 // Try to load key from local file if m3u8 is local
                 if (m3u8Url.startsWith("file://")) {
                     statusUpdateStrategy.update("Looking for local encryption key...");
-                    File m3u8File = new File(m3u8Url.substring(7));
+                    File m3u8File;
+                    try {
+                        m3u8File = new File(new URI(m3u8Url));
+                    } catch (Exception e) {
+                        log.warn("Failed to parse file URI, using fallback: {}", e.getMessage());
+                        m3u8File = new File(m3u8Url.substring(7));
+                    }
                     File m3u8Dir = m3u8File.getParentFile();
 
                     // Try common key file names
