@@ -27,10 +27,18 @@ public class M3U8ParserService {
 
     public List<String> parseM3U8Content(String content, String requestUrl) {
         strategy.update("parsing M3U8..........");
-        if (!content.contains(M3U8_HEADER)) {
+
+        // Trim content and check for m3u8 header (case-insensitive)
+        String trimmedContent = content.trim();
+        if (!trimmedContent.toUpperCase().contains(M3U8_HEADER.toUpperCase())) {
+            log.error("Invalid m3u8 content. First 100 chars: [{}]",
+                trimmedContent.substring(0, Math.min(100, trimmedContent.length())));
             strategy.update("invalid m3u8 url");
             return Collections.emptyList();
         }
+
+        // Use trimmed content for parsing
+        content = trimmedContent;
 
         log.info("Parsing m3u8 content, length: {} bytes", content.length());
 
@@ -75,8 +83,8 @@ public class M3U8ParserService {
         // Parse #EXT-X-KEY tag
         // Example formats:
         // #EXT-X-KEY:METHOD=AES-128,URI="https://example.com/key.key",IV=0x12345678901234567890123456789012
+        // #EXT-X-KEY:METHOOD=AES-128,URI="/videos/xxx/ts.key?query"  (typo in server)
         // #EXT-X-KEY:METHOD=AES-128,URI="key.key"
-        // #EXT-X-KEY:METHOD=AES-128,URI=https://example.com/key.key
 
         log.debug("Searching for EXT-X-KEY in m3u8 content");
 
@@ -84,31 +92,44 @@ public class M3U8ParserService {
         String[] lines = content.split("\n");
         for (String line : lines) {
             String trimmedLine = line.trim();
-            if (trimmedLine.startsWith("#EXT-X-KEY:")) {
+            if (trimmedLine.toUpperCase().startsWith("#EXT-X-KEY:")) {
                 log.info("Found EXT-X-KEY line: {}", trimmedLine);
-                String keyLine = trimmedLine.substring("#EXT-X-KEY:".length());
+                String keyLine = trimmedLine.substring(trimmedLine.indexOf(":") + 1);
                 encryptionKey = new EncryptionKey();
 
-                // Parse METHOD - more flexible pattern
-                Pattern methodPattern = Pattern.compile("METHOD\\s*=\\s*([^,\\s]+)", Pattern.CASE_INSENSITIVE);
+                // Parse METHOD/METHOOD - support common typos
+                Pattern methodPattern = Pattern.compile("(METHOD|METHOOD)\\s*=\\s*([^,\\s]+)", Pattern.CASE_INSENSITIVE);
                 Matcher methodMatcher = methodPattern.matcher(keyLine);
                 if (methodMatcher.find()) {
-                    encryptionKey.setMethod(methodMatcher.group(1).trim());
-                    log.info("Parsed METHOD: {}", encryptionKey.getMethod());
+                    encryptionKey.setMethod(methodMatcher.group(2).trim());
+                    log.info("Parsed METHOD: {} (from key: {})", encryptionKey.getMethod(), methodMatcher.group(1));
                 }
 
-                // Parse URI - support both quoted and unquoted URIs
-                Pattern uriPattern = Pattern.compile("URI\\s*=\\s*\"?([^,\"\\s]+)\"?", Pattern.CASE_INSENSITIVE);
+                // Parse URI - support quoted URIs with any content including query strings
+                Pattern uriPattern = Pattern.compile("URI\\s*=\\s*\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
                 Matcher uriMatcher = uriPattern.matcher(keyLine);
                 if (uriMatcher.find()) {
                     String uri = uriMatcher.group(1).trim();
+                    log.info("Raw URI from m3u8: {}", uri);
+
                     // Convert relative URL to absolute URL
                     if (!uri.startsWith("http")) {
-                        String urlPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
-                        uri = urlPath + uri;
+                        // Extract base URL (protocol + domain + path)
+                        if (uri.startsWith("/")) {
+                            // Absolute path: /videos/xxx/ts.key
+                            // Extract protocol and domain from baseUrl
+                            java.net.URI baseUri = java.net.URI.create(baseUrl);
+                            uri = baseUri.getScheme() + "://" + baseUri.getAuthority() + uri;
+                        } else {
+                            // Relative path: ts.key
+                            String urlPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
+                            uri = urlPath + uri;
+                        }
                     }
                     encryptionKey.setUri(uri);
-                    log.info("Parsed URI: {}", encryptionKey.getUri());
+                    log.info("Resolved absolute URI: {}", encryptionKey.getUri());
+                } else {
+                    log.warn("Failed to parse URI from line: {}", keyLine);
                 }
 
                 // Parse IV (optional)
