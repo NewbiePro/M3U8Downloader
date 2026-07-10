@@ -223,7 +223,15 @@ public class M3U8ViewModel {
                     String keyUri = encryptionKey.getUri();
                     if (keyUri != null && !keyUri.startsWith("http")) {
                         // It's a relative path or filename
-                        File keyFile = new File(m3u8Dir, keyUri);
+                        // Remove query parameters (e.g., "ts.key?" -> "ts.key")
+                        String keyFileName = keyUri;
+                        int queryIndex = keyFileName.indexOf('?');
+                        if (queryIndex > 0) {
+                            keyFileName = keyFileName.substring(0, queryIndex);
+                            log.info("Removed query parameters from key URI: {} -> {}", keyUri, keyFileName);
+                        }
+
+                        File keyFile = new File(m3u8Dir, keyFileName);
                         if (keyFile.exists()) {
                             try {
                                 byte[] keyBytes = Files.readAllBytes(keyFile.toPath());
