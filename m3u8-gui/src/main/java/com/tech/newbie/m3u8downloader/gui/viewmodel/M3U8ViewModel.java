@@ -79,9 +79,26 @@ public class M3U8ViewModel {
 
             String rawInput = inputArea.get().trim();
             String m3u8Url = rawInput;
+            String m3u8Content = null;
             Map<String, String> headers = null;
 
-            if (rawInput.startsWith("curl ")) {
+            // Check if input is a local file path or m3u8 content
+            if (rawInput.startsWith("#EXTM3U") || rawInput.startsWith("#extm3u")) {
+                // Direct m3u8 content pasted
+                log.info("Detected direct m3u8 content input");
+                m3u8Content = rawInput;
+                statusUpdateStrategy.update("Parsing pasted m3u8 content...");
+                alertUpdateStrategy.update("請在輸入框下方輸入完整的 m3u8 URL（用於解析相對路徑）");
+                // We need the base URL for relative paths, ask user or try to extract from content
+                m3u8Url = "https://example.com/video.m3u8"; // Placeholder
+            } else if (rawInput.startsWith("file://") || new java.io.File(rawInput).exists()) {
+                // Local file path
+                log.info("Detected local file path: {}", rawInput);
+                String filePath = rawInput.startsWith("file://") ? rawInput.substring(7) : rawInput;
+                m3u8Content = java.nio.file.Files.readString(java.nio.file.Path.of(filePath));
+                m3u8Url = "file://" + new java.io.File(filePath).getAbsolutePath();
+                statusUpdateStrategy.update("Reading local m3u8 file...");
+            } else if (rawInput.startsWith("curl ")) {
                 com.tech.newbie.m3u8downloader.core.common.utils.CurlParser.CurlRequest curlReq = com.tech.newbie.m3u8downloader.core.common.utils.CurlParser
                         .parse(rawInput);
                 if (curlReq != null && curlReq.getUrl() != null) {
@@ -98,8 +115,13 @@ public class M3U8ViewModel {
             HttpClient client = HttpClientFactory.createSimpleInsecureHttpClient();
 
             // Extract base URL for Referer/Origin
-            java.net.URI uri = java.net.URI.create(m3u8Url);
-            String baseUrl = uri.getScheme() + "://" + uri.getAuthority();
+            String baseUrl;
+            if (m3u8Url.startsWith("http")) {
+                java.net.URI uri = java.net.URI.create(m3u8Url);
+                baseUrl = uri.getScheme() + "://" + uri.getAuthority();
+            } else {
+                baseUrl = "https://example.com"; // Fallback for local files
+            }
 
             // 0- build request
             HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(m3u8Url));
@@ -135,11 +157,16 @@ public class M3U8ViewModel {
             HttpRequest request = builder.build();
 
             long parseStart = System.currentTimeMillis();
-            HttpResponse<String> response;
-            // 1- send m3u8 request
-            response = client.send(request, HttpResponse.BodyHandlers.ofString());
+
+            // 1- Get m3u8 content (from network or local)
+            if (m3u8Content == null) {
+                // Download from network
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                m3u8Content = response.body();
+            }
+
             // 2- parse all ts urls by response
-            List<String> tsUrls = m3U8ParserService.parseM3U8Content(response.body(), m3u8Url);
+            List<String> tsUrls = m3U8ParserService.parseM3U8Content(m3u8Content, m3u8Url);
 
             // 2.5- Download encryption key if needed
             EncryptionKey encryptionKey = m3U8ParserService.getEncryptionKey();
