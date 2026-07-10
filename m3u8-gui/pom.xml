@@ -69,6 +69,9 @@
                             <noManPages>true</noManPages>
                             <stripDebug>true</stripDebug>
                             <noHeaderFiles>true</noHeaderFiles>
+                            <options>
+                                <option>-Djdk.internal.httpclient.disableHostnameVerification=true</option>
+                            </options>
                         </configuration>
                     </execution>
                 </executions>
