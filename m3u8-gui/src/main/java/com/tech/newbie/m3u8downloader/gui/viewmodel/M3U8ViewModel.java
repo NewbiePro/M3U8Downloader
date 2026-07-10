@@ -82,6 +82,22 @@ public class M3U8ViewModel {
             String m3u8Url = rawInput;
             String m3u8Content = null;
             Map<String, String> headers = null;
+            String baseUrlOverride = null;
+
+            // Check if input contains BASE_URL for local m3u8 files
+            if (rawInput.contains("BASE_URL=")) {
+                String[] lines = rawInput.split("\\n");
+                for (String line : lines) {
+                    if (line.trim().startsWith("BASE_URL=")) {
+                        baseUrlOverride = line.trim().substring("BASE_URL=".length()).trim();
+                        log.info("Found BASE_URL override: {}", baseUrlOverride);
+                        // Remove BASE_URL line from input
+                        rawInput = rawInput.replace(line, "").trim();
+                        m3u8Url = rawInput;
+                        break;
+                    }
+                }
+            }
 
             // Check if input is a local file path or m3u8 content
             if (rawInput.startsWith("#EXTM3U") || rawInput.startsWith("#extm3u")) {
@@ -181,7 +197,10 @@ public class M3U8ViewModel {
             }
 
             // 2- parse all ts urls by response
-            List<String> tsUrls = m3U8ParserService.parseM3U8Content(m3u8Content, m3u8Url);
+            // Use baseUrlOverride if provided, otherwise use m3u8Url
+            String urlForParsing = baseUrlOverride != null ? baseUrlOverride : m3u8Url;
+            log.info("Parsing m3u8 content with base URL: {}", urlForParsing);
+            List<String> tsUrls = m3U8ParserService.parseM3U8Content(m3u8Content, urlForParsing);
 
             // 2.5- Download encryption key if needed
             EncryptionKey encryptionKey = m3U8ParserService.getEncryptionKey();

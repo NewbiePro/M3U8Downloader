@@ -62,10 +62,34 @@ public class M3U8ParserService {
         // Parse encryption key if present
         parseEncryptionKey(content, requestUrl);
 
-        String urlPath = requestUrl.substring(0, requestUrl.lastIndexOf("/") + 1);
+        // Check if requestUrl is valid for constructing ts URLs
+        final boolean canConstructUrls = requestUrl.startsWith("http://") || requestUrl.startsWith("https://");
+
+        final String urlPath;
+        if (canConstructUrls) {
+            urlPath = requestUrl.substring(0, requestUrl.lastIndexOf("/") + 1);
+            log.info("Using base URL for ts files: {}", urlPath);
+        } else {
+            urlPath = null;
+            log.warn("⚠ Cannot construct ts URLs from file:// path - ts URLs must be absolute or BASE_URL must be provided");
+        }
+
         List<String> tsFiles = content.lines()
                 .filter(line -> !line.isBlank() && !line.startsWith("#") && !line.startsWith("/"))
-                .map(line -> line.startsWith("https") || line.startsWith("http") ? line : urlPath + line)
+                .map(line -> {
+                    // If ts URL is already absolute, use it
+                    if (line.startsWith("https") || line.startsWith("http")) {
+                        return line;
+                    }
+                    // If we cannot construct URLs and ts URL is relative, throw error
+                    if (!canConstructUrls) {
+                        log.error("✗ Relative ts URL found but cannot construct full URL: {}", line);
+                        log.error("✗ Please provide BASE_URL in input (on a new line): BASE_URL=https://domain/path/");
+                        throw new RuntimeException("本地 m3u8 文件包含相對路徑的 ts URL，無法下載。\n請在輸入框中添加一行：\nBASE_URL=https://原始網域/路徑/");
+                    }
+                    // Normal case: construct absolute URL from relative path
+                    return urlPath + line;
+                })
                 .toList();
 
         if (encryptionKey != null && encryptionKey.isEncrypted()) {
