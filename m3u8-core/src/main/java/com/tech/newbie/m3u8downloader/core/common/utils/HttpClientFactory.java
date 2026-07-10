@@ -56,17 +56,20 @@ public class HttpClientFactory {
             TrustManager[] trustAllCerts = new TrustManager[] {
                     new X509TrustManager() {
                         public X509Certificate[] getAcceptedIssuers() {
-                            return null;
+                            return new X509Certificate[0];
                         }
 
                         public void checkClientTrusted(X509Certificate[] certs, String authType) {
+                            // Trust all clients
                         }
 
                         public void checkServerTrusted(X509Certificate[] certs, String authType) {
+                            // Trust all servers
                         }
                     }
             };
-            SSLContext sc = SSLContext.getInstance("TLSv1.2");
+            // Use "TLS" instead of "TLSv1.2" for better compatibility
+            SSLContext sc = SSLContext.getInstance("TLS");
             sc.init(null, trustAllCerts, new SecureRandom());
             return sc;
         } catch (Exception e) {
