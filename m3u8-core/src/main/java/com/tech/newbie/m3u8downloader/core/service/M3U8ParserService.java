@@ -32,6 +32,9 @@ public class M3U8ParserService {
             return Collections.emptyList();
         }
 
+        log.info("Parsing m3u8 content, length: {} bytes", content.length());
+        log.debug("M3U8 content preview:\n{}", content.substring(0, Math.min(500, content.length())));
+
         // Parse encryption key if present
         parseEncryptionKey(content, requestUrl);
 
@@ -42,8 +45,10 @@ public class M3U8ParserService {
                 .toList();
 
         if (encryptionKey != null && encryptionKey.isEncrypted()) {
-            log.info("M3U8 is encrypted with {}, key URI: {}", encryptionKey.getMethod(), encryptionKey.getUri());
+            log.info("✓ M3U8 is ENCRYPTED with {}, key URI: {}", encryptionKey.getMethod(), encryptionKey.getUri());
             strategy.update("Encrypted m3u8 detected - " + encryptionKey.getMethod());
+        } else {
+            log.info("✗ M3U8 is NOT encrypted");
         }
 
         strategy.update("There are " + tsFiles.size() + " files");
@@ -52,46 +57,61 @@ public class M3U8ParserService {
 
     private void parseEncryptionKey(String content, String baseUrl) {
         // Parse #EXT-X-KEY tag
-        // Example: #EXT-X-KEY:METHOD=AES-128,URI="https://example.com/key.key",IV=0x12345678901234567890123456789012
-        Pattern keyPattern = Pattern.compile("#EXT-X-KEY:(.+)");
-        Matcher matcher = keyPattern.matcher(content);
+        // Example formats:
+        // #EXT-X-KEY:METHOD=AES-128,URI="https://example.com/key.key",IV=0x12345678901234567890123456789012
+        // #EXT-X-KEY:METHOD=AES-128,URI="key.key"
+        // #EXT-X-KEY:METHOD=AES-128,URI=https://example.com/key.key
 
-        if (matcher.find()) {
-            String keyLine = matcher.group(1);
-            encryptionKey = new EncryptionKey();
+        log.debug("Searching for EXT-X-KEY in m3u8 content");
 
-            // Parse METHOD
-            Pattern methodPattern = Pattern.compile("METHOD=([^,]+)");
-            Matcher methodMatcher = methodPattern.matcher(keyLine);
-            if (methodMatcher.find()) {
-                encryptionKey.setMethod(methodMatcher.group(1));
-            }
+        // More flexible pattern - search line by line
+        String[] lines = content.split("\n");
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+            if (trimmedLine.startsWith("#EXT-X-KEY:")) {
+                log.info("Found EXT-X-KEY line: {}", trimmedLine);
+                String keyLine = trimmedLine.substring("#EXT-X-KEY:".length());
+                encryptionKey = new EncryptionKey();
 
-            // Parse URI
-            Pattern uriPattern = Pattern.compile("URI=\"([^\"]+)\"");
-            Matcher uriMatcher = uriPattern.matcher(keyLine);
-            if (uriMatcher.find()) {
-                String uri = uriMatcher.group(1);
-                // Convert relative URL to absolute URL
-                if (!uri.startsWith("http")) {
-                    String urlPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
-                    uri = urlPath + uri;
+                // Parse METHOD - more flexible pattern
+                Pattern methodPattern = Pattern.compile("METHOD\\s*=\\s*([^,\\s]+)", Pattern.CASE_INSENSITIVE);
+                Matcher methodMatcher = methodPattern.matcher(keyLine);
+                if (methodMatcher.find()) {
+                    encryptionKey.setMethod(methodMatcher.group(1).trim());
+                    log.info("Parsed METHOD: {}", encryptionKey.getMethod());
                 }
-                encryptionKey.setUri(uri);
-            }
 
-            // Parse IV (optional)
-            Pattern ivPattern = Pattern.compile("IV=(0[xX][0-9a-fA-F]+)");
-            Matcher ivMatcher = ivPattern.matcher(keyLine);
-            if (ivMatcher.find()) {
-                encryptionKey.setIv(ivMatcher.group(1));
-            }
+                // Parse URI - support both quoted and unquoted URIs
+                Pattern uriPattern = Pattern.compile("URI\\s*=\\s*\"?([^,\"\\s]+)\"?", Pattern.CASE_INSENSITIVE);
+                Matcher uriMatcher = uriPattern.matcher(keyLine);
+                if (uriMatcher.find()) {
+                    String uri = uriMatcher.group(1).trim();
+                    // Convert relative URL to absolute URL
+                    if (!uri.startsWith("http")) {
+                        String urlPath = baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1);
+                        uri = urlPath + uri;
+                    }
+                    encryptionKey.setUri(uri);
+                    log.info("Parsed URI: {}", encryptionKey.getUri());
+                }
 
-            log.info("Parsed encryption key: METHOD={}, URI={}, IV={}",
-                    encryptionKey.getMethod(), encryptionKey.getUri(), encryptionKey.getIv());
-        } else {
-            log.info("No encryption key found in m3u8");
+                // Parse IV (optional)
+                Pattern ivPattern = Pattern.compile("IV\\s*=\\s*(0[xX][0-9a-fA-F]+)", Pattern.CASE_INSENSITIVE);
+                Matcher ivMatcher = ivPattern.matcher(keyLine);
+                if (ivMatcher.find()) {
+                    encryptionKey.setIv(ivMatcher.group(1).trim());
+                    log.info("Parsed IV: {}", encryptionKey.getIv());
+                } else {
+                    log.info("No IV specified, will use sequence number");
+                }
+
+                log.info("Successfully parsed encryption key: METHOD={}, URI={}, IV={}",
+                        encryptionKey.getMethod(), encryptionKey.getUri(), encryptionKey.getIv());
+                return; // Found and parsed, exit
+            }
         }
+
+        log.info("No EXT-X-KEY tag found in m3u8 content");
     }
 
 }
