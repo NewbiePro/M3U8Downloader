@@ -38,7 +38,7 @@ public class MergeService {
 
         // log command
         File outputFile = new File(baseFilePath, baseFileName + ".mp4");
-        String command = String.format("ffmpeg -f concat -safe 0 -i %s -c copy %s",
+        String command = String.format("ffmpeg -f concat -safe 0 -i %s -c copy -bsf:a aac_adtstoasc -y %s",
                 fileListTxt.getAbsolutePath(),
                 outputFile.getAbsolutePath());
 
@@ -47,7 +47,10 @@ public class MergeService {
         ProcessBuilder pb = new ProcessBuilder(
                 "ffmpeg", "-f", "concat", "-safe", "0",
                 "-i", fileListTxt.getAbsolutePath(),
-                "-c", "copy", outputFile.getAbsolutePath()
+                "-c", "copy",
+                "-bsf:a", "aac_adtstoasc",  // Fix AAC bitstream for MP4
+                "-y",  // Overwrite output file if exists
+                outputFile.getAbsolutePath()
 
         );
 
@@ -55,11 +58,13 @@ public class MergeService {
         Process process = pb.start();
 
         // 讀取 ffmpeg 的輸出（包含錯誤資訊）
+        StringBuilder ffmpegOutput = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                log.info(line);
+                log.info("ffmpeg: {}", line);
+                ffmpegOutput.append(line).append("\n");
             }
         }
 
@@ -71,17 +76,22 @@ public class MergeService {
                 strategy.update("DONE");
                 removeFiles(fileListTxt, totalFiles, baseFilePath, baseFileName);
             } else {
-                log.info("ffmpeg執行失敗，錯誤代碼: {}", exitCode);
-                strategy.update("ERROR");
-                alert.update("ffmpeg執行失敗，錯誤代碼: " + exitCode);
+                log.error("ffmpeg執行失敗，錯誤代碼: {}", exitCode);
+                log.error("ffmpeg output:\n{}", ffmpegOutput);
+
+                String errorMsg = extractErrorMessage(ffmpegOutput.toString());
+                strategy.update("ERROR: Merge failed");
+                alert.update("合併失敗: " + errorMsg + "\n錯誤代碼: " + exitCode);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             log.error("interrupting, ", e);
             strategy.update("ERROR");
+            alert.update("合併中斷: " + e.getMessage());
         } catch (Exception e) {
             log.error("error ", e);
             strategy.update("ERROR");
+            alert.update("合併錯誤: " + e.getMessage());
         }
     }
 
@@ -91,6 +101,19 @@ public class MergeService {
         } catch (IOException e) {
             log.error("write error ", e);
         }
+    }
+
+    private String extractErrorMessage(String ffmpegOutput) {
+        // Extract useful error messages from ffmpeg output
+        String[] lines = ffmpegOutput.split("\n");
+        for (int i = lines.length - 1; i >= 0; i--) {
+            String line = lines[i].toLowerCase();
+            if (line.contains("invalid data") || line.contains("error") ||
+                line.contains("failed") || line.contains("could not")) {
+                return lines[i].trim();
+            }
+        }
+        return "檢查ts文件是否完整下載";
     }
 
     // rm txt files & .ts files

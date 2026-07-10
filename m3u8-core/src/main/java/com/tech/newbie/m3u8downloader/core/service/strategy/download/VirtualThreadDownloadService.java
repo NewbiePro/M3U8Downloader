@@ -64,7 +64,8 @@ public class VirtualThreadDownloadService {
                         try {
                             downloadTsFile(url, outputDir, fileName, tsUrls.size(), headers);
                         } catch (Exception e) {
-                            log.error("Error downloading with virtual thread", e);
+                            log.error("Error downloading with virtual thread: {}", e.getMessage(), e);
+                            throw new RuntimeException("Failed to download: " + url, e);
                         }
                     },
                     VIRTUAL_THREAD_POOL)).toList();
@@ -72,12 +73,19 @@ public class VirtualThreadDownloadService {
             CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
             allDone.join();
 
+            // Verify all files were downloaded successfully
+            int missingFiles = verifyDownloadedFiles(outputDir, fileName, tsUrls.size());
+            if (missingFiles > 0) {
+                throw new RuntimeException(String.format("%d ts files are missing or incomplete", missingFiles));
+            }
+
             statistics.setDownloadTime(System.currentTimeMillis() - startTime);
             afterDownload();
             cleanup();
         } catch (Exception e) {
             log.error("Download error", e);
-            statusUpdateStrategy.update("Error Downloading");
+            statusUpdateStrategy.update("Error: " + e.getMessage());
+            throw new RuntimeException("Download failed", e);
         }
     }
 
@@ -150,5 +158,31 @@ public class VirtualThreadDownloadService {
     protected void cleanup() {
         log.info("Virtual thread download service cleanup completed");
         // 虚拟线程会自动回收，无需显式关闭
+    }
+
+    private int verifyDownloadedFiles(String outputDir, String fileName, int totalFiles) {
+        int missingOrInvalid = 0;
+        for (int i = 1; i <= totalFiles; i++) {
+            File tsFile = new File(outputDir, String.format(TS_FORMAT, fileName, i));
+            if (!tsFile.exists()) {
+                log.error("Missing ts file: {}", tsFile.getName());
+                missingOrInvalid++;
+            } else if (tsFile.length() == 0) {
+                log.error("Empty ts file: {}", tsFile.getName());
+                missingOrInvalid++;
+            } else if (tsFile.length() < 100) {
+                // Files smaller than 100 bytes are likely error pages
+                log.error("Suspicious small ts file ({}bytes): {}", tsFile.length(), tsFile.getName());
+                missingOrInvalid++;
+            }
+        }
+
+        if (missingOrInvalid == 0) {
+            log.info("All {} ts files verified successfully", totalFiles);
+        } else {
+            log.error("Found {} missing or invalid ts files out of {}", missingOrInvalid, totalFiles);
+        }
+
+        return missingOrInvalid;
     }
 }
