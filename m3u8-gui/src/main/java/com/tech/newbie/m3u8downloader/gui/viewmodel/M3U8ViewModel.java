@@ -208,7 +208,8 @@ public class M3U8ViewModel {
                 boolean keyLoaded = false;
 
                 // Try to load key from local file if m3u8 is local
-                if (m3u8Url.startsWith("file://")) {
+                // Accept file:/, file://, or file:/// formats
+                if (m3u8Url.startsWith("file:")) {
                     statusUpdateStrategy.update("Looking for local encryption key...");
                     File m3u8File;
                     try {
