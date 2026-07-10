@@ -30,6 +30,11 @@ public class M3U8Application extends Application {
     }
 
     public static void main(String[] args) {
+        // Disable SSL hostname verification for servers with self-signed certificates
+        System.setProperty("jdk.internal.httpclient.disableHostnameVerification", "true");
+        System.setProperty("jdk.tls.client.disableHostnameVerification", "true");
+
+        log.info("SSL hostname verification disabled");
         launch();
     }
 }

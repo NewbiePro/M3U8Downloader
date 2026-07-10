@@ -4,6 +4,7 @@ import com.tech.newbie.m3u8downloader.core.config.AppConfig;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 import java.net.http.HttpClient;
@@ -25,9 +26,13 @@ public class HttpClientFactory {
      * @return HttpClient configured to trust all SSL certificates
      */
     public static HttpClient createInsecureHttpClient() {
+        SSLParameters sslParameters = new SSLParameters();
+        sslParameters.setEndpointIdentificationAlgorithm("");  // Disable hostname verification
+
         return HttpClient.newBuilder()
                 .connectTimeout(Duration.ofMillis(AppConfig.getInstance().getTimeout()))
                 .sslContext(getInsecureSslContext())
+                .sslParameters(sslParameters)
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
     }
@@ -39,8 +44,12 @@ public class HttpClientFactory {
      * @return HttpClient configured to trust all SSL certificates
      */
     public static HttpClient createSimpleInsecureHttpClient() {
+        SSLParameters sslParameters = new SSLParameters();
+        sslParameters.setEndpointIdentificationAlgorithm("");  // Disable hostname verification
+
         return HttpClient.newBuilder()
                 .sslContext(getInsecureSslContext())
+                .sslParameters(sslParameters)
                 .version(HttpClient.Version.HTTP_1_1)
                 .build();
     }
