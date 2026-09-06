@@ -345,14 +345,21 @@ public class M3U8ViewModel {
 
             long parseEnd = System.currentTimeMillis();
 
+            // fMP4 (fragmented MP4) streams have an #EXT-X-MAP init segment and .m4s fragments
+            String initSegmentUrl = m3U8ParserService.getInitSegmentUrl();
+
             long downloadStart = System.currentTimeMillis();
-            // 3- download all ts files (pass baseUrl for Referer/Origin)
-            downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers, encryptionKey, baseUrl);
+            // 3- download all segments (pass baseUrl for Referer/Origin)
+            downloadService.downloadTsFiles(tsUrls, path, fileName.get(), headers, encryptionKey, baseUrl, initSegmentUrl);
             long downloadEnd = System.currentTimeMillis();
 
             long mergeStart = System.currentTimeMillis();
-            // 4- merge all ts files
-            mergeService.mergeTsToMp4(path, fileName.get(), tsUrls.size());
+            // 4- merge all segments
+            if (initSegmentUrl != null) {
+                mergeService.mergeFmp4ToMp4(path, fileName.get(), tsUrls.size());
+            } else {
+                mergeService.mergeTsToMp4(path, fileName.get(), tsUrls.size());
+            }
             long mergeEnd = System.currentTimeMillis();
 
             long duration = System.currentTimeMillis() - start;

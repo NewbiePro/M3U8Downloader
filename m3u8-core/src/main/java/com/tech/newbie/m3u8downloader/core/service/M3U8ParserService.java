@@ -16,6 +16,7 @@ public class M3U8ParserService {
 
     private final UpdateCallback<String> strategy;
     private EncryptionKey encryptionKey;
+    private String initSegmentUrl;
 
     public M3U8ParserService(UpdateCallback<String> strategy) {
         this.strategy = strategy;
@@ -25,8 +26,18 @@ public class M3U8ParserService {
         return encryptionKey;
     }
 
+    /**
+     * The fMP4 (fragmented MP4 / CMAF) init segment URL from {@code #EXT-X-MAP}, or
+     * {@code null} when the playlist uses plain MPEG-TS segments.
+     */
+    public String getInitSegmentUrl() {
+        return initSegmentUrl;
+    }
+
     public List<String> parseM3U8Content(String content, String requestUrl) {
         strategy.update("parsing M3U8..........");
+        encryptionKey = null;
+        initSegmentUrl = null;
 
         // Trim content and check for m3u8 header (case-insensitive)
         String trimmedContent = content.trim();
@@ -74,6 +85,9 @@ public class M3U8ParserService {
             log.warn("⚠ Cannot construct ts URLs from file:// path - ts URLs must be absolute or BASE_URL must be provided");
         }
 
+        // Parse fMP4 init segment (#EXT-X-MAP) if present
+        parseInitSegment(content, requestUrl);
+
         List<String> tsFiles = content.lines()
                 .filter(line -> !line.isBlank() && !line.startsWith("#") && !line.startsWith("/"))
                 .map(line -> {
@@ -97,6 +111,11 @@ public class M3U8ParserService {
             strategy.update("Encrypted m3u8 detected - " + encryptionKey.getMethod());
         } else {
             log.info("✗ M3U8 is NOT encrypted");
+        }
+
+        if (initSegmentUrl != null) {
+            log.info("✓ M3U8 uses fMP4 segments, init segment: {}", initSegmentUrl);
+            strategy.update("fMP4 stream detected - " + tsFiles.size() + " fragments");
         }
 
         strategy.update("There are " + tsFiles.size() + " files");
@@ -186,6 +205,42 @@ public class M3U8ParserService {
         }
 
         log.info("No EXT-X-KEY tag found in m3u8 content");
+    }
+
+    /**
+     * Parse the {@code #EXT-X-MAP} tag. Its presence means the media segments are
+     * fragmented MP4 ({@code .m4s}) that need this init segment prepended before they
+     * can be decoded.
+     * Example: {@code #EXT-X-MAP:URI="init.mp4?hash=abc&expires=123"}
+     */
+    private void parseInitSegment(String content, String baseUrl) {
+        Pattern uriPattern = Pattern.compile("URI\\s*=\\s*\"([^\"]+)\"", Pattern.CASE_INSENSITIVE);
+        for (String line : content.split("\n")) {
+            String trimmedLine = line.trim();
+            if (!trimmedLine.toUpperCase().startsWith("#EXT-X-MAP:")) {
+                continue;
+            }
+            log.info("Found EXT-X-MAP line: {}", trimmedLine);
+            Matcher m = uriPattern.matcher(trimmedLine);
+            if (!m.find()) {
+                log.warn("EXT-X-MAP has no URI attribute: {}", trimmedLine);
+                return;
+            }
+            String uri = m.group(1).trim();
+            if (uri.startsWith("http://") || uri.startsWith("https://")) {
+                initSegmentUrl = uri;
+            } else {
+                try {
+                    // Resolves relative paths, absolute paths ("/x/init.mp4") and query strings
+                    initSegmentUrl = java.net.URI.create(baseUrl).resolve(uri).toString();
+                } catch (Exception e) {
+                    log.warn("Failed to resolve EXT-X-MAP URI '{}' against '{}': {}", uri, baseUrl, e.getMessage());
+                    initSegmentUrl = uri;
+                }
+            }
+            log.info("Resolved fMP4 init segment URL: {}", initSegmentUrl);
+            return;
+        }
     }
 
 }
