@@ -18,11 +18,11 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.tech.newbie.m3u8downloader.core.common.constant.Constant.TS_FORMAT;
 
@@ -35,7 +35,6 @@ public class VirtualThreadDownloadService {
     private final HttpClient httpClient;
     private final Statistics statistics;
 
-    private final AtomicInteger counter = new AtomicInteger(1);
     // Reduced from 32 to 8 to avoid rate limiting
     private static final Semaphore LIMITER = new Semaphore(8);
     private static final ExecutorService VIRTUAL_THREAD_POOL = Executors.newVirtualThreadPerTaskExecutor();
@@ -59,20 +58,27 @@ public class VirtualThreadDownloadService {
         boolean isEncrypted = encryptionKey != null && encryptionKey.isEncrypted();
         log.info("Start using VIRTUAL_THREAD to download [{}] tsFiles (encrypted: {})", tsUrls.size(), isEncrypted);
         statusUpdateStrategy.update(isEncrypted ? "Downloading and decrypting...." : "Downloading....");
-        counter.set(1);
 
         try {
             log.info("Creating download futures with virtual threads...");
-            List<CompletableFuture<Void>> futures = tsUrls.stream().map(url -> CompletableFuture.runAsync(
-                    () -> {
-                        try {
-                            downloadTsFile(url, outputDir, fileName, tsUrls.size(), headers, encryptionKey, baseUrl);
-                        } catch (Exception e) {
-                            log.error("Error downloading with virtual thread: {}", e.getMessage(), e);
-                            throw new RuntimeException("Failed to download: " + url, e);
-                        }
-                    },
-                    VIRTUAL_THREAD_POOL)).toList();
+            List<CompletableFuture<Void>> futures = new ArrayList<>();
+            for (int i = 0; i < tsUrls.size(); i++) {
+                // 1-based position of this segment in the playlist. Fixed per URL so the
+                // output file index and the AES IV/sequence are deterministic regardless
+                // of the order virtual threads happen to run in.
+                final int position = i + 1;
+                final String url = tsUrls.get(i);
+                futures.add(CompletableFuture.runAsync(
+                        () -> {
+                            try {
+                                downloadTsFile(url, outputDir, fileName, position, tsUrls.size(), headers, encryptionKey, baseUrl);
+                            } catch (Exception e) {
+                                log.error("Error downloading with virtual thread: {}", e.getMessage(), e);
+                                throw new RuntimeException("Failed to download: " + url, e);
+                            }
+                        },
+                        VIRTUAL_THREAD_POOL));
+            }
 
             CompletableFuture<Void> allDone = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
             allDone.join();
@@ -93,9 +99,8 @@ public class VirtualThreadDownloadService {
         }
     }
 
-    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int size, Map<String, String> headers, EncryptionKey encryptionKey, String baseUrl)
+    public void downloadTsFile(String tsUrl, String outputDir, String fileName, int index, int size, Map<String, String> headers, EncryptionKey encryptionKey, String baseUrl)
             throws IOException, InterruptedException {
-        int index = counter.getAndIncrement();
         File outputFile = new File(outputDir, String.format(TS_FORMAT, fileName, index));
 
         HttpRequest.Builder builder = HttpRequest.newBuilder()
@@ -144,9 +149,10 @@ public class VirtualThreadDownloadService {
 
                 byte[] data = response.body();
 
-                // Decrypt if needed
+                // Decrypt if needed. When the playlist supplies no explicit IV, HLS uses the
+                // segment's media sequence number, which is 0-based (first segment -> 0).
                 if (encryptionKey != null && encryptionKey.isEncrypted()) {
-                    data = DecryptionUtil.decryptAES128(data, encryptionKey, index);
+                    data = DecryptionUtil.decryptAES128(data, encryptionKey, index - 1);
                     log.debug("Decrypted ts file {}/{}", index, size);
                 }
 
@@ -215,6 +221,12 @@ public class VirtualThreadDownloadService {
                 // Files smaller than 100 bytes are likely error pages
                 log.error("Suspicious small ts file ({}bytes): {}", tsFile.length(), tsFile.getName());
                 missingOrInvalid++;
+            } else if (!looksLikeMpegTs(tsFile)) {
+                // Not a valid MPEG-TS stream: usually an HTML/JSON error page (rate limit /
+                // anti-hotlink) or a failed AES decryption (wrong key or IV).
+                log.error("Not valid MPEG-TS data (bad sync byte): {} - likely an error page or failed decryption",
+                        tsFile.getName());
+                missingOrInvalid++;
             }
         }
 
@@ -225,5 +237,35 @@ public class VirtualThreadDownloadService {
         }
 
         return missingOrInvalid;
+    }
+
+    /**
+     * A raw MPEG-TS stream is a sequence of 188-byte packets, each starting with the
+     * sync byte 0x47. Some streams carry a small ID3/tag prefix, so scan the first few
+     * KB for a plausible run of sync bytes rather than only checking byte 0.
+     */
+    private boolean looksLikeMpegTs(File tsFile) {
+        try {
+            byte[] head = new byte[Math.min((int) tsFile.length(), 8192)];
+            try (InputStream in = Files.newInputStream(tsFile.toPath())) {
+                int read = 0;
+                while (read < head.length) {
+                    int n = in.read(head, read, head.length - read);
+                    if (n < 0) break;
+                    read += n;
+                }
+            }
+            for (int offset = 0; offset < head.length - 188 * 3; offset++) {
+                if ((head[offset] & 0xFF) == 0x47
+                        && (head[offset + 188] & 0xFF) == 0x47
+                        && (head[offset + 188 * 2] & 0xFF) == 0x47) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (IOException e) {
+            log.warn("Could not inspect ts file {}: {}", tsFile.getName(), e.getMessage());
+            return true; // don't block the merge on an inspection failure
+        }
     }
 }

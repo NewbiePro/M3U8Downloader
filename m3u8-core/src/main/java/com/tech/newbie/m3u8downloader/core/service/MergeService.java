@@ -24,11 +24,16 @@ public class MergeService {
 
     public void mergeTsToMp4(String baseFilePath, String baseFileName, int totalFiles) throws IOException {
         strategy.update("Start merging.........");
-        // create FileList.txt that includes all ts files
+        File workingDir = new File(baseFilePath);
+
+        // create fileList.txt with RELATIVE names only. ffmpeg's concat demuxer treats a
+        // backslash as an escape character, so Windows absolute paths like
+        // C:\dir\name_1.ts break with "Impossible to open". Running ffmpeg with the
+        // working directory set to baseFilePath lets us list bare file names instead.
         StringBuilder fileListContent = new StringBuilder();
         for (int i = 1; i <= totalFiles; i++) {
-            fileListContent.append("file '").append(baseFilePath)
-                    .append(File.separator).append(String.format(TS_FORMAT, baseFileName, i))
+            fileListContent.append("file '")
+                    .append(String.format(TS_FORMAT, baseFileName, i))
                     .append("'\n");
         }
 
@@ -36,23 +41,23 @@ public class MergeService {
         File fileListTxt = new File(baseFilePath, "fileList.txt");
         writeToFile(fileListTxt, fileListContent.toString());
 
-        // log command
         File outputFile = new File(baseFilePath, baseFileName + ".mp4");
-        String command = String.format("ffmpeg -f concat -safe 0 -i %s -c copy -bsf:a aac_adtstoasc -y %s",
-                fileListTxt.getAbsolutePath(),
-                outputFile.getAbsolutePath());
+        String command = String.format("(cwd=%s) ffmpeg -f concat -safe 0 -i fileList.txt -c copy -bsf:a aac_adtstoasc -y %s",
+                baseFilePath,
+                outputFile.getName());
 
         log.info("command: {}", command);
         // execute command
         ProcessBuilder pb = new ProcessBuilder(
                 "ffmpeg", "-f", "concat", "-safe", "0",
-                "-i", fileListTxt.getAbsolutePath(),
+                "-i", "fileList.txt",
                 "-c", "copy",
                 "-bsf:a", "aac_adtstoasc",  // Fix AAC bitstream for MP4
                 "-y",  // Overwrite output file if exists
-                outputFile.getAbsolutePath()
+                outputFile.getName()
 
         );
+        pb.directory(workingDir);
 
         pb.redirectErrorStream(true); // merge stdError & stdOutput
         Process process = pb.start();
