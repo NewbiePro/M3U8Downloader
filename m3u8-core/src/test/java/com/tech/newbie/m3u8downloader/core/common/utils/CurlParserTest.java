@@ -27,4 +27,18 @@ class CurlParserTest {
         req.getHeaders().forEach(builder::header);
         builder.build();
     }
+
+    @Test
+    void mapsCookieUserAgentAndRefererFlagsToHeaders() {
+        String curl = "curl 'https://example.com/a.m3u8' -b 'sid=abc; token=xyz' -A 'UA/1.0'"
+                + " -e 'https://example.com/play' -H 'accept: */*'";
+
+        CurlParser.CurlRequest req = CurlParser.parse(curl);
+
+        assertEquals("https://example.com/a.m3u8", req.getUrl());
+        assertEquals("sid=abc; token=xyz", req.getHeaders().get("Cookie"));
+        assertEquals("UA/1.0", req.getHeaders().get("User-Agent"));
+        assertEquals("https://example.com/play", req.getHeaders().get("Referer"));
+        assertEquals("*/*", req.getHeaders().get("accept"));
+    }
 }

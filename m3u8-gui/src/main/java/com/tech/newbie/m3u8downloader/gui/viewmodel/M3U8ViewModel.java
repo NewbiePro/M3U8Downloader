@@ -26,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -191,6 +192,10 @@ public class M3U8ViewModel {
                 HttpRequest request = builder.build();
 
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    throw new IOException("m3u8 request failed: HTTP " + response.statusCode()
+                            + " (cookie/token may be missing or expired, re-copy the cURL)");
+                }
                 m3u8Content = response.body();
             }
 

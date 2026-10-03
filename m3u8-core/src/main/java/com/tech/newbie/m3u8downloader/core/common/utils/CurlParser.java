@@ -23,6 +23,10 @@ public class CurlParser {
     private static final Set<String> RESTRICTED_HEADERS = Set.of(
             "connection", "content-length", "expect", "host", "upgrade");
 
+    /** Flags whose next token is a value, not the URL. */
+    private static final Set<String> VALUE_FLAGS = Set.of(
+            "-H", "--header", "-b", "--cookie", "-A", "--user-agent", "-e", "--referer");
+
     public static class CurlRequest {
         private String url;
         private Map<String, String> headers = new HashMap<>();
@@ -87,6 +91,13 @@ public class CurlParser {
                         request.addHeader(key, value);
                     }
                 }
+            } else if (("-b".equals(token) || "--cookie".equals(token)) && i + 1 < tokens.size()) {
+                // Chrome "Copy as cURL" puts cookies in -b instead of -H 'cookie: ...'
+                request.addHeader("Cookie", tokens.get(++i));
+            } else if (("-A".equals(token) || "--user-agent".equals(token)) && i + 1 < tokens.size()) {
+                request.addHeader("User-Agent", tokens.get(++i));
+            } else if (("-e".equals(token) || "--referer".equals(token)) && i + 1 < tokens.size()) {
+                request.addHeader("Referer", tokens.get(++i));
             } else if (!token.startsWith("-") && request.getUrl() == null
                     && (token.startsWith("http://") || token.startsWith("https://"))) {
                 // If it's not a flag and we haven't set the URL yet, this is likely the URL
@@ -99,8 +110,7 @@ public class CurlParser {
         if (request.getUrl() == null) {
             for (int i = 1; i < tokens.size(); i++) {
                 String token = tokens.get(i);
-                if (!token.startsWith("-") && !"-H".equals(tokens.get(i - 1))
-                        && !"--header".equals(tokens.get(i - 1))) {
+                if (!token.startsWith("-") && !VALUE_FLAGS.contains(tokens.get(i - 1))) {
                     request.setUrl(token);
                     break;
                 }
