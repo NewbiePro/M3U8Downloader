@@ -5,13 +5,23 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
 
 public class CurlParser {
+
+    /**
+     * Headers java.net.http.HttpClient refuses to set (IllegalArgumentException:
+     * restricted header name). Browser "Copy as cURL" often includes them; the
+     * client manages them itself, so drop them.
+     */
+    private static final Set<String> RESTRICTED_HEADERS = Set.of(
+            "connection", "content-length", "expect", "host", "upgrade");
 
     public static class CurlRequest {
         private String url;
@@ -70,6 +80,10 @@ public class CurlParser {
                     if (colonIndex > 0) {
                         String key = headerFull.substring(0, colonIndex).trim();
                         String value = headerFull.substring(colonIndex + 1).trim();
+                        if (RESTRICTED_HEADERS.contains(key.toLowerCase(Locale.ROOT))) {
+                            log.info("Skipping restricted header: {}", key);
+                            continue;
+                        }
                         request.addHeader(key, value);
                     }
                 }
