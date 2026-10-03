@@ -89,10 +89,11 @@ public class M3U8ParserService {
         parseInitSegment(content, requestUrl);
 
         List<String> tsFiles = content.lines()
-                .filter(line -> !line.isBlank() && !line.startsWith("#") && !line.startsWith("/"))
+                .map(String::trim)
+                .filter(line -> !line.isBlank() && !line.startsWith("#"))
                 .map(line -> {
                     // If ts URL is already absolute, use it
-                    if (line.startsWith("https") || line.startsWith("http")) {
+                    if (line.startsWith("https://") || line.startsWith("http://")) {
                         return line;
                     }
                     // If we cannot construct URLs and ts URL is relative, throw error
@@ -101,8 +102,14 @@ public class M3U8ParserService {
                         log.error("✗ Please provide BASE_URL in input (on a new line): BASE_URL=https://domain/path/");
                         throw new RuntimeException("本地 m3u8 文件包含相對路徑的 ts URL，無法下載。\n請在輸入框中添加一行：\nBASE_URL=https://原始網域/路徑/");
                     }
-                    // Normal case: construct absolute URL from relative path
-                    return urlPath + line;
+                    // RFC 3986 resolution: handles "seg.ts", "/root/seg.ts" and "../seg.ts", and ignores
+                    // the playlist's own query string (tokens may contain "/")
+                    try {
+                        return java.net.URI.create(requestUrl).resolve(line).toString();
+                    } catch (IllegalArgumentException e) {
+                        log.warn("Failed to resolve ts URI '{}' against '{}': {}", line, requestUrl, e.getMessage());
+                        return urlPath + line;
+                    }
                 })
                 .toList();
 
