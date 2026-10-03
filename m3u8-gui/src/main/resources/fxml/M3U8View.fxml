@@ -53,6 +53,11 @@
             </VBox>
 
             <VBox spacing="8" alignment="CENTER_LEFT">
+                <Label text="Base URL (optional, for local m3u8 with relative segment paths)" styleClass="label"/>
+                <TextField fx:id="baseUrlField" promptText="https://cdn.example.com/  (segments starting with / only need the domain)" styleClass="text-field"/>
+            </VBox>
+
+            <VBox spacing="8" alignment="CENTER_LEFT">
                 <Label text="Local Save Designation" styleClass="label"/>
                 <TextField fx:id="fileNameField" promptText="video_name (without .mp4)" styleClass="text-field"/>
             </VBox>

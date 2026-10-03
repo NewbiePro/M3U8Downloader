@@ -36,6 +36,8 @@ public class M3U8Controller {
     @FXML
     public TextArea inputArea;
     @FXML
+    public TextField baseUrlField;
+    @FXML
     public TextField fileNameField;
     @FXML
     public Label statusText;
@@ -65,6 +67,7 @@ public class M3U8Controller {
         timeLabel.textProperty().bindBidirectional(m3U8ViewModel.getTimeLabel());
         inputArea.textProperty().bindBidirectional(m3U8ViewModel.getInputArea());
         fileNameField.textProperty().bindBidirectional(m3U8ViewModel.getFileName());
+        baseUrlField.textProperty().bindBidirectional(m3U8ViewModel.getBaseUrlInput());
 
         m3U8ViewModel.getPhaseTimes().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && !newValue.isEmpty()) {

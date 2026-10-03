@@ -49,6 +49,7 @@ public class M3U8ViewModel {
     private final StringProperty timeLabel = new SimpleStringProperty();
     private final StringProperty inputArea = new SimpleStringProperty();
     private final StringProperty fileName = new SimpleStringProperty();
+    private final StringProperty baseUrlInput = new SimpleStringProperty();
     private final ObjectProperty<Map<String, Long>> phaseTimes = new SimpleObjectProperty<>();
     private String path;
     // UI strategy
@@ -98,6 +99,12 @@ public class M3U8ViewModel {
                         break;
                     }
                 }
+            }
+
+            // Base URL field takes precedence over a BASE_URL= line in the input area
+            if (StringUtils.isNotBlank(baseUrlInput.get())) {
+                baseUrlOverride = baseUrlInput.get().trim();
+                log.info("Using BASE_URL from field: {}", baseUrlOverride);
             }
 
             // Check if input is a local file path or m3u8 content
